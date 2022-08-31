@@ -15,7 +15,9 @@ steps:
   inputs:
     rootFolderOrFile: '$(build.sourcesDirectory)'
     includeRootFolder: false
-- task: gitsync@1
-  inputs:
-    GitRepoUrl: 'https://bonganihlong:$(Github.PAT)@github.com/bonganihlong/sites.git'
+- bash: |
+    git push --prune https://$(Github.PAT)@github.com/bonganihlong/sites \
+        +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
+  displayName: 'Copy to Github'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
 - task: PublishBuildArtifacts@1
