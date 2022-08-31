@@ -19,5 +19,5 @@ steps:
     git push --prune https://$(Github.PAT)@github.com/bonganihlong/sites \
         +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
   displayName: 'Copy to Github'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
 - task: PublishBuildArtifacts@1
