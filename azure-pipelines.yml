@@ -1,4 +1,5 @@
 # HTML
+
 # Archive your static HTML project and save it with the build record.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
@@ -14,4 +15,7 @@ steps:
   inputs:
     rootFolderOrFile: '$(build.sourcesDirectory)'
     includeRootFolder: false
+- task: gitsync@1
+  inputs:
+    GitRepoUrl: 'https://bonganihlong:$(Github.PAT)@github.com/bonganihlong/sites.git'
 - task: PublishBuildArtifacts@1
