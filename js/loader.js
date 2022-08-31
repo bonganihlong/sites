@@ -273,11 +273,13 @@ function getItemValue(context) {
 function loadImages(context){
 	var results = JSON.parse(context);
 	for(var i = 0; i < results.workItems.length; i++){
+		console.log("image: " + results.workItems[i].id);
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", results.workItems[i].id), loadImageItem, 'loadImageItem'   + results.workItems[i].id);
 	}
 }
 function loadImageItem(context){
 	var results = JSON.parse(context);
+	console.log("Image " + results.fields['Custom.Text']);
    displayProtectedImage(results.fields['Custom.Text'], results.relations.find(attachment => attachment.rel == "AttachedFile").url, 'Basic ' + key);
 }
 
@@ -451,7 +453,7 @@ function getRelation(context){
 					body = res;
 				}
 				scripts +=  title + "{" + body + "}" + "\r\n";
-				document.getElementById('main').style.display = 'block';                
+				document.getElementById('main').style.display = 'block';
 				document.getElementById('loader_div').style.display = 'none';
 				i++;
 			}
@@ -537,6 +539,9 @@ function getGeneric(context){
 				break;
 			case 'Script' :
 				get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.id), getScript, 'getScript' + result.id);
+				break;
+			case 'Image' :
+				get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.id), loadImageItem, 'loadImageItem' + result.id);
 				break;
 	}
 	}
