@@ -451,7 +451,8 @@ function getRelation(context){
 					body = res;
 				}
 				scripts +=  title + "{" + body + "}" + "\r\n";
-				document.getElementById('main').style.display = 'block';
+				document.getElementById('main').style.display = 'block';                
+				document.getElementById('loader_div').style.display = 'none';
 				i++;
 			}
 			if(!cssDone){
