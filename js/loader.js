@@ -110,15 +110,70 @@ async function displayProtectedImage(imageId, imageUrl, authToken) {
 	try {
 		const response = await fetchWithAuthentication(imageUrl, authToken);
 		const blob = await response.blob();
+		
 		const objectUrl = URL.createObjectURL(blob);
+		
+		
 		const imageElement = document.getElementById(imageId);
 		imageElement.src = objectUrl;
+		
+		var blobToBase64 = function(blob, callback) {
+		var reader = new FileReader();
+			reader.onload = function() {
+				var dataUrl = reader.result;
+				var base64 = dataUrl.split(',')[1];
+				callback(imageUrl, base64);
+			};
+			reader.readAsDataURL(blob);
+		};
+		console.log(blobToBase64);
+		blobToBase64(blob, repoImage);
+		
 		document.getElementById(imageId + '_div').style.display = 'block';
 	} catch (e) {
 		console.log(e);
 		console.log(imageUrl);
 		console.log(imageId);
 	}
+}
+
+
+function repoImage(imageUrl, base64){
+	var filename = imageUrl.split('/').pop();
+	var json = JSON.stringify(
+		{
+		  "refUpdates": [
+			{
+			  "name": "refs/heads/main",
+			  "oldObjectId": "" + commit
+			}
+		  ],
+		  "commits": [
+			{
+			  "comment": "Added new image file.",
+			  "changes": [
+				{
+				  "changeType": "add",
+				  "item": {
+					"path": "/images/" + filename
+				  },
+				  "newContent": {
+					"content": "" + base64,
+					"contentType": "base64encoded"
+				  }
+				}
+			  ]
+			}
+		  ]
+		}
+	);
+	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage');
+}
+
+function uploadImage(context) {
+		var result = JSON.parse(context);
+		console.log('Uploaded Image: ' + uploadImage);
+		commit = result.commits[0].commitId;
 }
 
 
@@ -139,6 +194,9 @@ var path_workitems = '_apis/wit/workitems?ids=#ids#&' + version;
 var path_workitem = '_apis/wit/workitems/#ids#?' + version + '&$expand=all';
 var path_wiql = '_apis/wit/wiql?' + version;
 var path_batch = '_apis/wit/workitemsbatch?' + version;
+var path_repo = '_apis/git/repositories?' + version;
+var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
+var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
 
 
 var user = 'Bongani';
@@ -184,6 +242,19 @@ function loadConfigValues(context) {
 			config[result.value[i].fields['System.Title']] = result.value[i].fields['Custom.Text'];
 			//document.body.innerHTML = document.body.innerHTML.replaceAll("config['" + result.value[i].fields['System.Title'] +"']" , config[result.value[i].fields['System.Title']]);
 		}
+}
+
+var repo = "";
+function loadRepos(context) {
+		var result = JSON.parse(context);
+		repo = result.value.find(item => item.project.name == "Sunglass").id;
+		get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
+}
+var commit = "";
+function loadCommit(context) {
+		var result = JSON.parse(context);
+		//console.log('Commit ' + context);
+		commit = result.value[0].commitId;
 }
 
 var jsonConfig = JSON.stringify({
@@ -279,8 +350,17 @@ function loadImages(context){
 }
 function loadImageItem(context){
 	var results = JSON.parse(context);
-	console.log("Image " + results.fields['Custom.Text']);
-   displayProtectedImage(results.fields['Custom.Text'], results.relations.find(attachment => attachment.rel == "AttachedFile").url, 'Basic ' + key);
+	var url = results.relations.find(attachment => attachment.rel == "AttachedFile").url;
+	var img = url.split('/').pop();
+	console.log("Image " + results.fields['Custom.Text'] + ":" + img);
+	$.get("images/" + img)
+    .done(function() { 
+        $("#" + results.fields['Custom.Text']).attr("src", url);
+		console.log("Image found: " + img);
+    }).fail(function() { 
+        displayProtectedImage(results.fields['Custom.Text'], url, 'Basic ' + key);
+    })
+   
 }
 
 function stripHtml(html) {
@@ -336,6 +416,7 @@ window.onload = function() {
 		"query": "Select [System.Id], [System.Title], [System.Description] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
 	});
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
+	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
 	
 	
 }
