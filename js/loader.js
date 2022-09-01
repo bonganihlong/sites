@@ -126,7 +126,6 @@ async function displayProtectedImage(imageId, imageUrl, authToken) {
 			};
 			reader.readAsDataURL(blob);
 		};
-		console.log(blobToBase64);
 		blobToBase64(blob, repoImage);
 		
 		document.getElementById(imageId + '_div').style.display = 'block';
@@ -348,12 +347,14 @@ function loadImages(context){
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", results.workItems[i].id), loadImageItem, 'loadImageItem'   + results.workItems[i].id);
 	}
 }
+
+var fileserver = "https://bonganihlong.github.io/sites/";
 function loadImageItem(context){
 	var results = JSON.parse(context);
 	var url = results.relations.find(attachment => attachment.rel == "AttachedFile").url;
 	var img = url.split('/').pop();
 	console.log("Image " + results.fields['Custom.Text'] + ":" + img);
-	$.get("images/" + img)
+	$.get(fileserver + "images/" + img)
     .done(function() { 
         $("#" + results.fields['Custom.Text']).attr("src", url);
 		console.log("Image found: " + img);
