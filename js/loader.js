@@ -425,7 +425,7 @@ window.onload = function() {
 }
 
 function sendAccessWhatsapp(){
-window.location.href = "https://api.whatsapp.com/send?phone=0726359342&text=AccessSunglass";
+window.location.href = "https://api.whatsapp.com/send?phone=27726359342&text=AccessSunglass";
 }
 
 function sendAccessEmail(){
