@@ -106,7 +106,7 @@ function fetchWithAuthentication(url, authToken) {
 	});
 }
 
-async function displayProtectedImage(imageId, imageUrl, authToken) {
+async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 	try {
 		const response = await fetchWithAuthentication(imageUrl, authToken);
 		const blob = await response.blob();
@@ -122,7 +122,7 @@ async function displayProtectedImage(imageId, imageUrl, authToken) {
 			reader.onload = function() {
 				var dataUrl = reader.result;
 				var base64 = dataUrl.split(',')[1];
-				callback(imageUrl, base64);
+				callback(imageUrl, base64, name);
 			};
 			reader.readAsDataURL(blob);
 		};
@@ -137,8 +137,8 @@ async function displayProtectedImage(imageId, imageUrl, authToken) {
 }
 
 
-function repoImage(imageUrl, base64){
-	var filename = imageUrl.split('/').pop();
+function repoImage(imageUrl, base64, name){
+	var filename = imageUrl.split('/').pop() + name;
 	var json = JSON.stringify(
 		{
 		  "refUpdates": [
@@ -351,15 +351,17 @@ function loadImages(context){
 var fileserver = "https://bonganihlong.github.io/sites/";
 function loadImageItem(context){
 	var results = JSON.parse(context);
-	var url = results.relations.find(attachment => attachment.rel == "AttachedFile").url;
+	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
+	var url = rel.url;
+	var file = rel.attributes.name;
 	var img = url.split('/').pop();
 	console.log("Image " + results.fields['Custom.Text'] + ":" + img);
-	$.get(fileserver + "images/" + img)
+	$.get(fileserver + "images/" + img + file)
     .done(function() { 
-        $("#" + results.fields['Custom.Text']).attr("src", url);
+        $("#" + results.fields['Custom.Text']).attr("src", fileserver + "images/" + img + file);
 		console.log("Image found: " + img);
     }).fail(function() { 
-        displayProtectedImage(results.fields['Custom.Text'], url, 'Basic ' + key);
+        displayProtectedImage(results.fields['Custom.Text'], url, 'Basic ' + key, file);
     })
    
 }
@@ -423,11 +425,11 @@ window.onload = function() {
 }
 
 function sendAccessWhatsapp(){
-window.location.href = config['WhatsappContact'].replace("###Site###", site);
+window.location.href = "https://api.whatsapp.com/send?phone=0726359342&text=AccessSunglass";
 }
 
 function sendAccessEmail(){
-window.location.href = config['EmailContact'].replace('###Site###', site);
+window.location.href = "mailto:bonganihlong@icloud.com?subject=RequestAccess&body=AccessSunglass";
 }
 
 function menuHtml(context) {
