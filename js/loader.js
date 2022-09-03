@@ -79,6 +79,7 @@ function get(url, callBack, item) {
 			}else{
 				if(url.includes('Session') && this.status != 200 ){
 					$('#accessModal').modal('show');
+					document.getElementById('genTokenDiv').style.display = 'block';
 				}
 				console.log('Getting failed: ' + this.status + ":" + item + ":" + url);
 			}
@@ -111,8 +112,7 @@ async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 		const response = await fetchWithAuthentication(imageUrl, authToken);
 		const blob = await response.blob();
 		
-		const objectUrl = URL.createObjectURL(blob);
-		
+		const objectUrl = URL.createObjectURL(blob);		
 		
 		const imageElement = document.getElementById(imageId);
 		imageElement.src = objectUrl;
@@ -169,11 +169,42 @@ function repoImage(imageUrl, base64, name){
 	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage');
 }
 
+function createToken(){
+	var filename = imageUrl.split('/').pop() + name;
+	
+var date = new Date();
+date = date.addDays(5);
+var user = document.getElementById('userId').innerHTML;
+
+	var json = JSON.stringify(
+		{
+		  "displayName": "" + user + site + device,
+		  "scope": "app_token",
+		  "validTo": "" + date.toString,
+		  "allOrgs": false
+		}
+	);
+	post(url_org + '/' + path_token, json, uploadImage, 'uploadImage');
+}
+
+function getToken(){
+	var result = JSON.parse(context);
+		console.log('Uploaded Image: ' + uploadImage);
+		document.getElementById('userId').innerHTML = result.patToken.token;
+}
+
 function uploadImage(context) {
 		var result = JSON.parse(context);
 		console.log('Uploaded Image: ' + uploadImage);
 		commit = result.commits[0].commitId;
 }
+
+Date.prototype.addDays = function(days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
 
 
 var site = 'Sunglass';
@@ -196,6 +227,7 @@ var path_batch = '_apis/wit/workitemsbatch?' + version;
 var path_repo = '_apis/git/repositories?' + version;
 var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
 var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
+var path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
 
 
 var user = 'Bongani';
@@ -405,10 +437,11 @@ function loadToken(context) {
 	var date = new Date(result.value.find(x => x.displayName == site + 'Token').validTo);
 	tokenDate = date.toString('YY MM DD');
 	document.getElementById('tokenDateId').innerHTML = 'Valid until ' +  formatDate(tokenDate);
-	document.getElementById('userId').innerHTML = user;
+	document.getElementById("newTokenBtn").disabled = false;
 }
 
 var key = "";
+var device = "";
 window.onload = function() {
 	//alert(localStorage.getItem(site + "token"));
 	key = btoa(":" + localStorage.getItem(site + "token"));
@@ -420,7 +453,7 @@ window.onload = function() {
 	});
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
 	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
-	
+	device = new DeviceUUID().get();
 	
 }
 
@@ -440,8 +473,6 @@ function menuHtml(context) {
 			get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getHtml, 'getHtml' + result.workItems[i].id);
 		}
 	}catch(e){
-	console.log(e);
-	
 	console.log(context);
 }
 }
@@ -451,7 +482,7 @@ async function getHtml(context) {
 		var result = JSON.parse(context);
 		console.log(result.fields['System.Title'] + "-" + result.fields['Custom.Text']);
 		document.getElementById(result.fields['Custom.Text']).innerHTML = stripHtml(result.fields['Custom.Data']).replace('&nbsp', '').replaceAll("###Title###", result.fields['System.Title']).replaceAll("###Description###", result.fields['System.Description']);
-		loadRelation(result.relations, result.fields['Custom.Text']);
+		loadRelation(result.relations);
 	}catch(e){
 		console.log(e);
 		console.log(context);
@@ -465,7 +496,7 @@ function loadRelation(relations, ext){
 	if(relations.length > 0){
 	var ids = new Array();
 	var sep = "";
-	var arr = relations.filter(item => item.rel == "System.LinkTypes.Hierarchy-Forward" || item.rel == "System.LinkTypes.Duplicate-Reverse");
+	var arr = relations.filter(item => item.rel == "System.LinkTypes.Hierarchy-Forward");
 	for(var i in arr){
 			ids.push(parseInt(arr[i].url.split('/').pop()));
 		}
