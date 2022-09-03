@@ -169,28 +169,38 @@ function repoImage(imageUrl, base64, name){
 	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage');
 }
 
-function createToken(){
-	var filename = imageUrl.split('/').pop() + name;
-	
-var date = new Date();
-date = date.addDays(5);
+function createToken(id){
+var request = localStorage.getItem('RequestToken');
+if(request == undefined || request == null){
 var user = document.getElementById('userId').innerHTML;
 
 	var json = JSON.stringify(
-		{
-		  "displayName": "" + user + site + device,
-		  "scope": "app_token",
-		  "validTo": "" + date.toString,
-		  "allOrgs": false
-		}
+		
+		  {
+			"text": "Request: " + site + user + device
+		  }
+		
 	);
-	post(url_org + '/' + path_token, json, uploadImage, 'uploadImage');
+	post(url_proj + '/' + path_comment.replace('###id###', id), json, getToken, 'getToken');
+}else{
+	get(url_proj + '/' + path_getcomment.replace('###wid###', id).replace('###id###', request), getComment, 'getComment');
+	
+	}
 }
 
-function getToken(){
+function getToken(context){
 	var result = JSON.parse(context);
-		console.log('Uploaded Image: ' + uploadImage);
-		document.getElementById('userId').innerHTML = result.patToken.token;
+	localStorage.setItem('RequestToken', result.id);
+}
+
+function getComment(context){	
+	var result = JSON.parse(context);
+	var arr = result.text.split(';');
+	if(arr.length > 1){
+		document.getElementById('newToken').innerHTML = arr[1];
+	}else{
+		document.getElementById('newToken').innerHTML = 'New Token Requested';
+	}
 }
 
 function uploadImage(context) {
@@ -228,6 +238,8 @@ var path_repo = '_apis/git/repositories?' + version;
 var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
 var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
 var path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
+var path_comment = "_apis/wit/workItems/###id###/comments?api-version=6.0-preview.3";
+var path_getcomment = "_apis/wit/workItems/###wid###/comments/###id###?api-version=6.0-preview.3"
 
 
 var user = 'Bongani';
@@ -454,6 +466,7 @@ window.onload = function() {
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
 	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
 	device = new DeviceUUID().get();
+	$('#accessModal').modal('show');
 	
 }
 
