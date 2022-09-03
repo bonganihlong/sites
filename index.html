@@ -23,6 +23,18 @@
 			 height: auto;
 			width: 280px;
 		}
+		.loader {
+		
+		height: 100%;
+		width: 100%;
+		position: absolute;
+		left: 0;
+		top: 0;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	
+	}
 	</style>
 	  <!--
       <link rel="stylesheet" href="onlineshop/css/style.css">-->
@@ -35,7 +47,7 @@
       <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script><![endif]-->
-	  <script src="js/loader.js?v=1.5"></script>
+	  <script src="js/loader.js?v=1.6"></script>
 		
    </head>
    <!-- body -->
@@ -174,10 +186,15 @@
         <button type="button" class="btn btn-primary cashmodal_btn" id="narrat_ok" data-dismiss="modal" onclick="sendAccessWhatsapp()">Whatsapp Request</button>
         <button type="button" class="btn btn-primary cashmodal_btn" id="narrat_ok" data-dismiss="modal" onclick='sendAccessEmail()'>Send Email Request</button>
       </div>
+      <div class="modal-body" id="genTokenDiv" style="display: block;">	  
+        <button type="button" class="btn btn-primary cashmodal_btn" id="newTokenBtn"  onclick="createToken()" disabled>Generate Token</button><br>
+		<label class="modal_note" id="newToken"></label>
+      </div>
     </div>
   </div>
 </div>
      
+      <script src="js/device.js"></script>
       <script src="js/jquery.min.js"></script>
       <script src="js/popper.min.js"></script>
       <script src="js/bootstrap.bundle.min.js"></script>
