@@ -1,27 +1,54 @@
 
 function post(url, json, callBack, item) {
-	var base = btoa(item + url + key);
-	var data = getWithExpiry(base);
-	if(data != null) {
-		//console.log('PostingDB: ' + item);
-		callBack(data);
-		return;
-	}
-	
-	var xhr = new XMLHttpRequest();
-	xhr.open('POST', url, true);
-	xhr.setRequestHeader('Authorization', 'Basic ' + key);
-	xhr.setRequestHeader('Content-Type', 'application/json');
-	xhr.onreadystatechange = function() {
-		if(xhr.readyState == XMLHttpRequest.DONE){
-			if (this.status == 200) { 
-				handleCaller(this, base, callBack, item);
-			}else{
-				console.log('Posting failed: ' + url + ":" + item + ":" + json);
-			}
-			}
-	}
-	xhr.send(json);
+	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
+	bases[base] = item + url + key;
+	var data = getText(fileserver + "images/" + base + ".js");
+	console.log("Data: " + data);
+	if(data != undefined && data != null && data != ""){
+		console.log(data);
+        callBack(data);
+		console.log("Image found: " + img);
+    }else{ 
+		var data = getWithExpiry(base);
+		if(data != null) {
+			//console.log('PostingDB: ' + item);
+			callBack(data);
+			return;
+		}
+		
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', url, true);
+		xhr.setRequestHeader('Authorization', 'Basic ' + key);
+		xhr.setRequestHeader('Content-Type', 'application/json');
+		xhr.onreadystatechange = function() {
+			if(xhr.readyState == XMLHttpRequest.DONE){
+				if (this.status == 200) { 
+					handleCaller(this, base, callBack, item);
+				}else if(this.status == 409){
+					setTimeout(post(url, json, callBack, item), 60000);
+				}
+				else{
+					console.log('Posting failed: ' + this.status + url + ":" + item + ":" + json);
+				}
+				}
+		}
+		xhr.send(json);
+		}	
+}
+
+function getText(url){
+    // read text from URL location
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.send(null);
+    request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.status === 200) {
+            var type = request.getResponseHeader('Content-Type');
+            if (type.indexOf("text") !== 1) {
+                return request.responseText;
+            }
+        }
+    }
 }
 
 var ttls = [];
@@ -50,6 +77,7 @@ function getWithExpiry(key) {
 }
 
 var config = {};
+var bases = {};
 config["ttl"] = 5000;
 var ttls = {};
 function handleCaller(context, base, callBack, item){	
@@ -57,35 +85,67 @@ function handleCaller(context, base, callBack, item){
 	if(currttl == null) currttl = config["ttl"];
 	setWithExpiry(base, context.responseText, currttl);
 	if(context.responseText != "" && context.responseText != null && context.responseText != undefined){
-	callBack(context.responseText);
+		console.log("Item: " + item);		
+		callBack(context.responseText);
+		
+		if(!item.includes("Repo") && !item.includes("repo") && !item.includes("loadToken") && !item.includes("uploadImage") && !item.includes("repoImage") && !item.includes("commit")  && !item.includes("Commit")){
+			var json = JSON.stringify(context.responseText);
+			
+			var fileContent = context.responseText;
+			var bb = new Blob([fileContent ], { type: 'text/plain' });
+			var a = document.createElement('a');
+			a.download = base + ".js";
+			a.href = window.URL.createObjectURL(bb);
+			//a.click();
+			
+			repoImage("", json, base + ".js", 'rawtext');
+		}
 	}
 }
 
 function get(url, callBack, item) {
-	var base = btoa(item + url + key);
-	var data = getWithExpiry(base);
-	//console.log('Getting len: ' + item + data);
-	if(data != null) {
-		callBack(data);
-		return;
-	}
-	var xhr = new XMLHttpRequest();
-	xhr.open('GET', url);
-	xhr.setRequestHeader('Authorization', 'Basic ' + key);
-	xhr.onreadystatechange  = function() {
-		if(xhr.readyState == XMLHttpRequest.DONE){
-			if (this.status == 200) {
-				return handleCaller(this, base, callBack, item);
-			}else{
-				if(url.includes('Session') && this.status != 200 ){
-					$('#accessModal').modal('show');
-					document.getElementById('genTokenDiv').style.display = 'block';
-				}
-				console.log('Getting failed: ' + this.status + ":" + item + ":" + url);
-			}
+	console.log("Getting: " + item);
+	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
+	bases[base] = item + url + key;
+	if(item.includes("commit") || item.includes("Commit")){
+		getPath(base, url, callBack, item);
+	}else{
+		var data = getText(fileserver + "images/" + base + ".js");
+		if(data != undefined && data != null && data != ""){
+			console.log(data);
+			callBack(data);
+			console.log("Image found: " + img);
+		}else{
+			getPath(base, url, callBack, item);		
 		}
 	}
-	xhr.send();
+	
+}
+
+function getPath(base, url, callBack, item){
+	var data = getWithExpiry(base);
+		//console.log('Getting len: ' + item + data);
+		if(data != null) {
+			callBack(data);
+			return;
+		}
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', url);
+		xhr.setRequestHeader('Authorization', 'Basic ' + key);
+		xhr.onreadystatechange  = function() {
+			if(xhr.readyState == XMLHttpRequest.DONE){
+				if (this.status == 200) {
+					return handleCaller(this, base, callBack, item);
+				}else{
+					if(url.includes('Session') && this.status != 200 ){
+						$('#accessModal').modal('show');
+						document.getElementById('genTokenDiv').style.display = 'block';
+					}
+					console.log('Getting failed: ' + this.status + ":" + item + ":" + url);
+				}
+			}
+		}
+		xhr.send();
 }
 
 
@@ -121,8 +181,7 @@ async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 		var reader = new FileReader();
 			reader.onload = function() {
 				var dataUrl = reader.result;
-				var base64 = dataUrl.split(',')[1];
-				callback(imageUrl, base64, name);
+				var base64 = dataUrl.split(',')[1];				
 			};
 			reader.readAsDataURL(blob);
 		};
@@ -137,8 +196,39 @@ async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 }
 
 
-function repoImage(imageUrl, base64, name){
+function repoImage(imageUrl, base64, name, type){
+	
 	var filename = imageUrl.split('/').pop() + name;
+	if(filename == undefined) return;
+	
+	var obj = {};
+	obj.filename = filename;
+	obj.base64 = base64;
+	obj.type = type
+	objs.push(obj);
+	if(objs.length < 10) return; 
+	if(repo == ""){
+		console.log("No repo: " + imageUrl + name);
+		return;
+	}
+	if(commit == ""){
+		console.log("No commit: " + imageUrl + name);
+		return;
+	}
+	var changes = [];
+	for(var i=0; i<objs.length; i++){
+		var curr_commit = {
+				  "changeType": "add",
+				  "item": {
+					"path": "/images/" + objs[i].filename
+				  },
+				  "newContent": {
+					"content": "" + objs[i].base64,
+					"contentType": "" + objs[i].type
+				  }
+				};
+		changes.push(curr_commit);
+	}
 	var json = JSON.stringify(
 		{
 		  "refUpdates": [
@@ -148,31 +238,48 @@ function repoImage(imageUrl, base64, name){
 			}
 		  ],
 		  "commits": [
-			{
+		  {
 			  "comment": "Added new image file.",
-			  "changes": [
-				{
-				  "changeType": "add",
-				  "item": {
-					"path": "/images/" + filename
-				  },
-				  "newContent": {
-					"content": "" + base64,
-					"contentType": "base64encoded"
-				  }
-				}
-			  ]
-			}
+			  "changes" : changes
+		  }
+		  
 		  ]
 		}
 	);
-	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage');
+	//console.log(json);
+	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage' + name);
+	objs = [];
 }
 
+var objs  = [];
+
+String.prototype.hashCode = function() {
+  var hash = 0, i, chr;
+  if (this.length === 0) return hash;
+  for (i = 0; i < this.length; i++) {
+    chr   = this.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
 function createToken(id){
-var request = localStorage.getItem('RequestToken');
-if(request == undefined || request == null){
-var user = document.getElementById('userId').innerHTML;
+	var obj = {
+	  name: bases
+	};
+
+	console.log();
+	var fileContent = JSON.stringify(obj);
+			var bb = new Blob([fileContent ], { type: 'text/plain' });
+			var a = document.createElement('a');
+			a.download = "bases.js";
+			a.href = window.URL.createObjectURL(bb);
+			a.click();
+			
+	var request = localStorage.getItem('RequestToken');
+	if(request == undefined || request == null){
+	var user = document.getElementById('userId').innerHTML;
 
 	var json = JSON.stringify(
 		
@@ -206,7 +313,9 @@ function getComment(context){
 function uploadImage(context) {
 		var result = JSON.parse(context);
 		console.log('Uploaded Image: ' + uploadImage);
-		commit = result.commits[0].commitId;
+		if(result.commits.length >0){
+			//commit = result.commits[0].commitId;
+		}
 }
 
 Date.prototype.addDays = function(days) {
@@ -288,16 +397,28 @@ function loadConfigValues(context) {
 }
 
 var repo = "";
+function en(c){var x='charCodeAt',b,e={},f=c.split(""),d=[],a=f[0],g=256;for(b=1;b<f.length;b++)c=f[b],null!=e[a+c]?a+=c:(d.push(1<a.length?e[a]:a[x](0)),e[a+c]=g,g++,a=c);d.push(1<a.length?e[a]:a[x](0));for(b=0;b<d.length;b++)d[b]=String.fromCharCode(d[b]);return d.join("")}
+
+function de(b){var a,e={},d=b.split(""),c=f=d[0],g=[c],h=o=256;for(b=1;b<d.length;b++)a=d[b].charCodeAt(0),a=h>a?d[b]:e[a]?e[a]:f+c,g.push(a),c=a.charAt(0),e[o]=f+c,o++,f=a;return g.join("")}
+
 function loadRepos(context) {
 		var result = JSON.parse(context);
 		repo = result.value.find(item => item.project.name == "Sunglass").id;
-		get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
+		fetchCommit();
+		//console.log("Repo: " + repo);
 }
+function fetchCommit(){
+	get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
+	setTimeout('fetchCommit()', 1000);
+}
+
 var commit = "";
 function loadCommit(context) {
 		var result = JSON.parse(context);
-		//console.log('Commit ' + context);
-		commit = result.value[0].commitId;
+		if(result.value.length > 0){
+			commit = result.value[0].commitId;
+			console.log('Commit ' + commit);
+		}
 }
 
 var jsonConfig = JSON.stringify({
@@ -392,7 +513,7 @@ function loadImages(context){
 	}
 }
 
-var fileserver = "https://bonganihlong.github.io/sites/";
+var fileserver = "";
 function loadImageItem(context){
 	var results = JSON.parse(context);
 	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
