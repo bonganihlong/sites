@@ -236,6 +236,20 @@ function createToken(id){
 	}
 }
 
+function addComment(comment){
+	var json = JSON.stringify(
+		
+		  {
+			"text": user + ": " + site + ":" + comment
+		  }
+		);
+		post(url_proj + '/' + path_comment.replace('###id###', 16923), json, processComment, 'processComment');
+}
+
+function processComment(context){
+	var result = getResult(context);
+}
+
 function getToken(context){
 	var result = getResult(context);
 	localStorage.setItem('RequestToken', result.id);
@@ -523,25 +537,92 @@ window.onload = function() {
 	//alert(localStorage.getItem(site + "token"));
 	key = btoa(":" + localStorage.getItem(site + "token"));
 	//alert(key);
+	log('onload', 'startlog', "Starting loading", ln());
 	createDB();
+	log('onload', 'startlog', "Getting last date", ln());
 	getLastDate();
+	log('onload', 'startlog', "Getting current date", ln());
 	if(maxDate == null){
 		maxDate = getCurentDate();
 	}
+	log('onload', 'startlog', "Getting Tokens", ln());
 	get('https://vssps.dev.azure.com/kukhanya' + '/_apis/Token/SessionTokens?api-version=5.0-preview', loadToken, 'loadToken');	
-
+	log('onload', 'startlog', "Getting First Entry", ln());
 	var json = JSON.stringify({
 		"query": "Select [System.Id], [System.Title], [System.Description], [Custom.Text] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
 	});
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
+	log('onload', 'startlog', "Getting Updated Work Items", ln());
 	json = JSON.stringify({
 		"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] > '" + maxDate + "'"
 	});
 	post(url_team + '/' + path_wiql, json, getUpdatedWI, 'getUpdatedWI');
-	
+	log('onload', 'startlog', "Getting Repo", ln());
 	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
+	log('onload', 'startlog', "Getting Device", ln());
 	device = new DeviceUUID().get();
+	log('onload', 'endlog', "End loading for device:" + device, ln());
 	
+}
+var addlog = ['onload'];
+var removelog = [];
+var addcomment = [];
+var removecomment = [];
+
+function log(funct, item, text, ln){
+	var consolelog = false;
+	var commentlog = false;
+	if(addlog.includes(funct)){
+		consolelog = true;
+	}
+	if(addcomment.includes(funct)){
+		commentlog = true;
+	}
+	if(addlog.includes(item)){
+		consolelog = true;
+	}
+	if(addcomment.includes(item)){
+		commentlog = true;
+	}
+	if(removelog.includes(item)){
+		consolelog = false;
+	}
+	if(removecomment.includes(item)){
+		commentlog = false;
+	}
+	if(removelog.includes(funct)){
+		consolelog = false;
+	}
+	if(removecomment.includes(funct)){
+		commentlog = false;
+	}
+	
+	if(consolelog){
+		console.log(ln + "-" + funct + ":" + item + ":" + text );
+	}
+	if(commentlog){
+		addComment(ln + "-" + funct + ":" +  item + ":" + text);
+	}
+}
+function ln() {
+  var e = new Error();
+  if (!e.stack) try {
+    // IE requires the Error to actually be throw or else the Error's 'stack'
+    // property is undefined.
+    throw e;
+  } catch (e) {
+    if (!e.stack) {
+      return 0; // IE < 10, likely
+    }
+  }
+  var stack = e.stack.toString().split(/\r\n|\n/);
+  // We want our caller's frame. It's index into |stack| depends on the
+  // browser and browser version, so we need to search for the second frame:
+  var frameRE = /:(\d+):(?:\d+)[^\d]*$/;
+  do {
+    var frame = stack.shift();
+  } while (!frameRE.exec(frame) && stack.length);
+  return frameRE.exec(stack.shift())[1];
 }
 
 function getCurentDate(){
@@ -730,9 +811,7 @@ function getUpdatedWI(context){
 	var result = getResult(context);
 	var ids = [];
 	for (var i in result.workItems) {
-		var updatedwi = {};
 		ids.push(parseInt(result.workItems[i].id));
-		updatedwi.date = currDate;
 	}
 	var json = JSON.stringify({"ids":   ids  ,  "fields": [    "System.Id",    "System.ChangedDate"]});	
 				post(url_org + "/Css/" + path_batch, json, addWIs, 'addWIs');
@@ -757,8 +836,7 @@ function getLastDate(){
 		    console.log('no records!');
 		  }
 		};
-	}	
-	
+	}		
 }
 
 
@@ -774,10 +852,9 @@ function addWIs(context){
 		if(getWI(updatedwi.id) != null){
 			updateWI(updatedwi);
 		}else{
-			addWI(result.workItems[i].id, updatedwi.date);
+			addWI(result.value[i].id, updatedwi.date);
 		}
-	}
-	
+	}	
 }
 
 function getWI(id){
@@ -810,11 +887,13 @@ function removeWI(id){
 function createDB(){
 	var request = window.indexedDB.open(site + "Database", 1);
 	request.onupgradeneeded = function(event) {
+		log('createDB', 'creatingstore', "Starting to create store", ln());
         var db = event.target.result;
         var oS = db.createObjectStore("workitems", { keyPath: "id" });
 			oS.createIndex('by_date', 'date');
 	        oS.createIndex("id", "id", { unique: true });
         };
+		log('createDB', 'creatingstore', "Store created", ln());
 }
 
 function addWI(id, date) {
