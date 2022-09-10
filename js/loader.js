@@ -42,7 +42,7 @@ var index;
 var addlog = ['onload', 'loadRepos'];
 var removelog = [];
 var addcomment = ['onload', 'Exception', 'getWI'];
-addcomment = [];
+//addcomment = [];
 var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {	
