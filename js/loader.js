@@ -1,6 +1,52 @@
+var commitTime = 1000;
+var ttls = [];
+var config = {};
+var bases = {};
+config["ttl"] = 5000;
+var ttls = {};
+
+var site = 'Sunglass';
+document.title = site;
+
+var base = 'https://dev.azure.com';
+var org = 'kukhanya';
+var project = 'FormForm';
+var projectCSS = 'CSS';
+var url_org = base + "/" + org;
+var url_proj = url_org + "/" + project;
+var url_projCSS = url_org + "/" + projectCSS;
+var version = 'api-version=6.0';
+var path_workitems = '_apis/wit/workitems?ids=#ids#&' + version;
+var path_workitem = '_apis/wit/workitems/#ids#?' + version + '&$expand=all';
+var path_wiql = '_apis/wit/wiql?' + version;
+var path_batch = '_apis/wit/workitemsbatch?' + version;
+var path_repo = '_apis/git/repositories?' + version;
+var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
+var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
+var path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
+var path_comment = "_apis/wit/workItems/###id###/comments?api-version=6.0-preview.3";
+var path_getcomment = "_apis/wit/workItems/###wid###/comments/###id###?api-version=6.0-preview.3"
+
+
+var user = 'Bongani';
+localStorage.setItem('userId', user);
+config['userId'] = user;
+
+var team = 'FormFormTeam';
+var url_team = url_proj + '/' + team;
+var tokenDate = '';
+
+var idsArr = [];
+var index;
+
+var addlog = ['onload'];
+var removelog = [];
+var addcomment = [];
+var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {
 	
+	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get, ln());
 	if(source == null || source == undefined) source = false;
 	var storedItem;
 	if(!source && url.includes('workitems/')){
@@ -14,7 +60,7 @@ function all(url, json, callBack, item, source, get) {
 	if(item == "loadCommit" || item == 'loadToken' || item == 'loadRepos' || item.includes('Css') || item.includes('Session')) source = true;
 	var base = (btoa(item + url + key + config[site + 'version']).hashCode() + "").replace("-","C");
 	bases[base] = item + url + key ;
-	console.log("Getting from post: " + item + url + "--" + base);
+	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
 	
 	$.ajax({
 		url: source ? url : fileserver + "images/" + base + ".js",
@@ -25,27 +71,37 @@ function all(url, json, callBack, item, source, get) {
 		cache: true,
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
+				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + storedItem, ln());
 				handleCaller(str, base, callBack, item, source);
 				if(storedItem != undefined && storedItem != maxId){
+					log('all', 'success', "Removing item: " + storedItem, ln());
 					removeWI(storedItem);
+					log('all', 'success', "Removed item: " + storedItem, ln());
 				}
 			}else{
+				log('all', 'failure', "Not found " + item + source + storedItem, ln());
 				if(!source){
+					log('all', 'failure', "Getting source " + item, ln());
 					all(url, json, callBack, item, true, get);
 				}
+					log('all', 'failure', "Done." + item, ln());
 			}
 		},
 		failure: function (str,sta,xhr) {
-				console.log("GET Failure: " + url);
+			log('all', 'onfailure', "Not found " + url + item, ln());
 			if(!source){
+					log('all', 'onfailure', "Getting source " + url + item, ln());
 					all(url, json, callBack, item, true, get);
 				}
+			log('all', 'onfailure', "Done." + item, ln());
 		},
 		error: function (str,sta,xhr) {
-				console.log("GET Error: " + url);
+				log('all', 'error', "Not found " + url + item, ln());
 			if(!source){
+					log('all', 'error', "Getting source " + url + item, ln());
 					all(url, json, callBack, item, true, get);
 				}
+			log('all', 'error', "Done." + item, ln());
 		},
 	});	
 }
@@ -64,11 +120,6 @@ function get(url, callBack, item, source){
 }
 
 
-var ttls = [];
-var config = {};
-var bases = {};
-config["ttl"] = 5000;
-var ttls = {};
 
 function handleCaller(context, base, callBack, item, source){	
 	if(context != "" && context != null && context != undefined){
@@ -281,41 +332,10 @@ Date.prototype.addDays = function(days) {
 
 
 
-var site = 'Sunglass';
-document.title = site;
 
 
 
-var base = 'https://dev.azure.com';
-var org = 'kukhanya';
-var project = 'FormForm';
-var projectCSS = 'CSS';
-var url_org = base + "/" + org;
-var url_proj = url_org + "/" + project;
-var url_projCSS = url_org + "/" + projectCSS;
-var version = 'api-version=6.0';
-var path_workitems = '_apis/wit/workitems?ids=#ids#&' + version;
-var path_workitem = '_apis/wit/workitems/#ids#?' + version + '&$expand=all';
-var path_wiql = '_apis/wit/wiql?' + version;
-var path_batch = '_apis/wit/workitemsbatch?' + version;
-var path_repo = '_apis/git/repositories?' + version;
-var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
-var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
-var path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
-var path_comment = "_apis/wit/workItems/###id###/comments?api-version=6.0-preview.3";
-var path_getcomment = "_apis/wit/workItems/###wid###/comments/###id###?api-version=6.0-preview.3"
 
-
-var user = 'Bongani';
-localStorage.setItem('userId', user);
-config['userId'] = user;
-
-var team = 'FormFormTeam';
-var url_team = url_proj + '/' + team;
-var tokenDate = '';
-
-var idsArr = [];
-var index;
 
 
 
@@ -366,7 +386,7 @@ function loadRepos(context) {
 		fetchCommit();
 }
 
-var commitTime = 1000;
+
 function fetchCommit(){
 	get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
 	setTimeout('fetchCommit()', commitTime);
@@ -566,10 +586,7 @@ window.onload = function() {
 	log('onload', 'endlog', "End loading for device:" + device, ln());
 	
 }
-var addlog = ['onload'];
-var removelog = [];
-var addcomment = ['onload', 'loadRepos'];
-var removecomment = [];
+
 
 function log(funct, item, text, ln){
 	var consolelog = false;
