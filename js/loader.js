@@ -41,7 +41,7 @@ var index;
 
 var addlog = ['onload'];
 var removelog = [];
-var addcomment = [];
+var addcomment = ['onload', 'all'];
 var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {
