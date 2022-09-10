@@ -28,9 +28,8 @@ var path_comment = "_apis/wit/workItems/###id###/comments?api-version=6.0-previe
 var path_getcomment = "_apis/wit/workItems/###wid###/comments/###id###?api-version=6.0-preview.3"
 
 
-var user = 'Bongani';
-localStorage.setItem('userId', user);
-config['userId'] = user;
+var user = localStorage.getItem(site + 'userId');
+
 
 var team = 'FormFormTeam';
 var url_team = url_proj + '/' + team;
