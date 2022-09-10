@@ -21,7 +21,7 @@ var path_workitem = '_apis/wit/workitems/#ids#?' + version + '&$expand=all';
 var path_wiql = '_apis/wit/wiql?' + version;
 var path_batch = '_apis/wit/workitemsbatch?' + version;
 var path_repo = '_apis/git/repositories?' + version;
-var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main" + version;
+var path_commit = "_apis/git/repositories/###repositoryId###/commits?&$top=1&searchCriteria.refName=refs/heads/main&" + version;
 var path_push = "_apis/git/repositories/###repositoryId###/pushes?" + version;
 var path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
 var path_comment = "_apis/wit/workItems/###id###/comments?api-version=6.0-preview.3";
@@ -39,15 +39,13 @@ var tokenDate = '';
 var idsArr = [];
 var index;
 
-var addlog = ['onload'];
+var addlog = ['onload', 'loadRepos'];
 var removelog = [];
 var addcomment = ['onload', 'Exception', 'getWI'];
 addcomment = [];
 var removecomment = [];
 
-
-function all(url, json, callBack, item, source, get) {
-	
+function all(url, json, callBack, item, source, get) {	
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get, ln());
 	if(source == null || source == undefined) source = false;
 	var storedItem;
@@ -60,7 +58,7 @@ function all(url, json, callBack, item, source, get) {
 	}
 	if(item == "uploadImage") source = true;
 	if(item == "loadCommit" || item == 'loadToken' || item == 'loadRepos' || item.includes('Css') || item.includes('Session')) source = true;
-	var base = (btoa(item + url + key + config[site + 'version']).hashCode() + "").replace("-","C");
+	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
 	bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
 	
@@ -74,7 +72,7 @@ function all(url, json, callBack, item, source, get) {
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
 				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + storedItem, ln());
-				handleCaller(str, base, callBack, item, source);
+				handleCaller(str, base, callBack, item, source, get);
 				if(storedItem != undefined && storedItem != maxId){
 					log('all', 'success', "Removing item: " + storedItem, ln());
 					removeWI(storedItem);
@@ -108,32 +106,37 @@ function all(url, json, callBack, item, source, get) {
 	});	
 }
 
+var postsource = ['getUpdatedWI', 'addWIs'];
+
 function post(url, json, callBack, item, source){
 	if(source == null || source == undefined) source = false;
+	if(postsource.includes(item)) source = true;
 	all(url, json, callBack, item, source, false)
 }
 
-var clientversion = '2022-09-09-01;'
-
+var getsource = ['loadCommit'];
 function get(url, callBack, item, source){
 	if(source == null || source == undefined) source = false;
-	
+	if(getsource.includes(item)) source = true;
 	all(url, null, callBack, item, source, true)
 }
 
 
-
-function handleCaller(context, base, callBack, item, source){	
+var repoitems = ['loadToken', 'getRelaysWiql'];
+function handleCaller(context, base, callBack, item, source, get){	
+	log('handleCaller', 'context', item + context , ln());
 	if(context != "" && context != null && context != undefined){
-		console.log("Item: " + item);
-		callBack(context);
-		
-		if(!item.includes("Repo") && !item.includes("repo") && !item.includes("loadToken") && !item.includes("uploadImage") && !item.includes("repoImage") && !item.includes("commit")  && !item.includes("Commit")){
+		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
+		callBack(context);		
+		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
+		if(!repoitems.includes(item)){
 			var json = JSON.stringify(context);
-			if(source){	
-				console.log("Repoing...");
+			if(source && get){	
+				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
 				repoImage("", json, base + ".js", 'rawtext');
+				log('handleCaller', 'handleCaller', "Done repoImage " + item , ln());
 			}
+			log('handleCaller', 'handleCaller', "Finished repoImage " + item , ln());
 		}
 	}
 }
@@ -196,7 +199,6 @@ function repoImage(imageUrl, base64, name, type){
 	obj.filename = filename;
 	obj.base64 = base64;
 	obj.type = type;
-	console.log("Duplicate: " + objs.filter(item => item.filename == filename).length);
 	if(objs.filter(item => item.filename == filename).length > 0) return;
 	objs.push(obj);
 	if(objs.length < 5) return; 
@@ -322,7 +324,7 @@ function uploadImage(context) {
 		var result = getResult(context);
 		console.log('Uploaded Image: ' + uploadImage);
 		if(result.commits.length >0){
-			//commit = result.commits[0].commitId;
+			commit = result.commits[0].commitId;
 		}
 }
 
@@ -558,17 +560,14 @@ function loadToken(context) {
 var key = "";
 var device = "";
 window.onload = function() {
-	//alert(localStorage.getItem(site + "token"));
+	alert(localStorage.getItem(site + "token"));
 	key = btoa(":" + localStorage.getItem(site + "token"));
 	//alert(key);
 	log('onload', 'startlog', "Starting loading", ln());
 	createDB();
 	log('onload', 'startlog', "Getting last date", ln());
 	getLastDate();
-	log('onload', 'startlog', "Getting current date", ln());
-	if(maxDate == null){
-		maxDate = getCurentDate();
-	}
+	
 	log('onload', 'startlog', "Getting Tokens", ln());
 	get('https://vssps.dev.azure.com/kukhanya' + '/_apis/Token/SessionTokens?api-version=5.0-preview', loadToken, 'loadToken');	
 	log('onload', 'startlog', "Getting First Entry", ln());
@@ -576,11 +575,7 @@ window.onload = function() {
 		"query": "Select [System.Id], [System.Title], [System.Description], [Custom.Text] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
 	});
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
-	log('onload', 'startlog', "Getting Updated Work Items", ln());
-	json = JSON.stringify({
-		"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] > '" + maxDate + "'"
-	});
-	post(url_team + '/' + path_wiql, json, getUpdatedWI, 'getUpdatedWI');
+	
 	log('onload', 'startlog', "Getting Repo", ln());
 	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
 	log('onload', 'startlog', "Getting Device", ln());
@@ -744,6 +739,8 @@ function getRelation(context){
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", relay[i].fields['System.Id'] ), getGeneric, 'getGeneric' + relay[i].fields['System.Id']);
 	}
 	console.log("cssCount: " + cssCount);
+	document.getElementById('main').style.display = 'block';
+	document.getElementById('loader_div').style.display = 'none';
 	if(css.length > 0){
 		if(globalcss == null) {
 			globalcss = css;
@@ -820,14 +817,13 @@ function getRelay(context){
 
 function getRelaysWiql(context){
 	var result = getResult(context);
-	console.log("getRelaysWiql: " + result.workItems[0].id);	
 	for (var i in result.workItems) {
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getRelay, 'getRelay' + result.workItems[i].id);
 	}
 }
 
 var workitems = [];
-var maxDate = "2022-09-08";
+var maxDate = "";
 var maxId;
 
 function getUpdatedWI(context){
@@ -836,8 +832,10 @@ function getUpdatedWI(context){
 	for (var i in result.workItems) {
 		ids.push(parseInt(result.workItems[i].id));
 	}
-	var json = JSON.stringify({"ids":   ids  ,  "fields": [    "System.Id",    "System.ChangedDate"]});	
-				post(url_org + "/Css/" + path_batch, json, addWIs, 'addWIs');
+	if(ids.length > 0){
+		var json = JSON.stringify({"ids":   ids  ,  "fields": [ "System.Id",    "System.ChangedDate"]});	
+		post(url_org + "/Css/" + path_batch, json, addWIs, 'addWIs');
+	}
 	
 }
 
@@ -853,13 +851,26 @@ function getLastDate(){
 		  var cursor = request.result;
 		  if (cursor) {
 			maxDate = cursor.key;
-			  maxId = cursor.id;
-		    console.log('max date is: ' + cursor.key);
+			  maxId = cursor.value.id;
+			    console.log('max date is: ' + cursor.key);
 		  } else {
+			  if(maxDate == ""){
+					maxDate = getCurentDate().substring(0, 10);
+				}
+				if(maxDate == ""){
+					maxDate = '2022-09-07';
+				}
+			  maxId = "-1";
 		    console.log('no records!');
 		  }
-		};
-	}		
+			maxDate = maxDate.substring(0, 10);
+			log('onload', 'startlog', "Getting Updated Work Items", ln());
+			json = JSON.stringify({
+				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] > '" + maxDate + "'"
+			});
+			post(url_team + '/' + path_wiql, json, getUpdatedWI, 'getUpdatedWI');
+				};
+			}		
 }
 
 
@@ -869,8 +880,8 @@ function addWIs(context){
 	var css = result.value.filter(item => item.fields["Custom.Type"] == "Css")
 	for (var i in result.value) {
 		var updatedwi = {};
-		updatedwi.id = result.value[i]["System.Id"] ;
-		updatedwi.date = result.value[i]["System.ChangedDate"] 
+		updatedwi.id = result.value[i].fields["System.Id"] ;
+		updatedwi.date = result.value[i].fields["System.ChangedDate"] 
 	
 		if(getWI(updatedwi.id) != null){
 			updateWI(updatedwi);
@@ -925,17 +936,6 @@ function createDB(){
 
 function addWI(id, date) {
 
-    
-    window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-    window.IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction || window.msIDBTransaction || {READ_WRITE: "readwrite"}; // This line should only be needed if it is needed to support the object's constants for older browsers
-    window.IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
-
-    if (!window.indexedDB) {
-        console.log("Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.");
-        } else { 
-        console.log("You're good to go with IndexedDB");
-        };
-
     var request = window.indexedDB.open(site + "Database", 1);
 
     var b = (function () {
@@ -947,21 +947,17 @@ function addWI(id, date) {
     })();
 
     request.onerror = function(event) {
-        console.log("PleaseTry again", event);
+        log('addWI', 'Excpetion', "Not found " + id, ln());;
         };
 
     var d = b();
-    console.log(d);
-    console.log("New data: ", d, d.isArray);
     d.forEach(function(rest) {
         console.log("I: ", d);
         });
 
     request.onupgradeneeded = function(event) {
-        console.log('(WINR.UGN)Within request.upgradeneeded');
 
         var db = event.target.result;
-        console.log("(WINR.UGN) db:", db);
 
         var oS = db.createObjectStore("workitems", { keyPath: "id" });
 			oS.createIndex('by_date', 'date');
@@ -969,24 +965,21 @@ function addWI(id, date) {
         };
 
     request.onsuccess = function(event) {
-        console.log('(WOR.NS) Within request.onsuccess');
         var db = event.target.result;
-        console.log("(WOR.NS) db= ", db);
 
         var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems"); 
 
         d.forEach(function(item) {
             rTrans.add(item);
-            console.log("You followed directions! Well done. var item: ", item, "stored with this transaction: ", rTrans);
             });
 
         rTrans.oncomplete = function () {
-            console.log("CONGRATULATIONS.");
+            //console.log("CONGRATULATIONS.");
             }
         };
 
     request.onupgradeneeded.onerror = function(event) {
-        console.log("err", event);
+         log('addWI', 'Excpetion', "Could not upgrade ", ln());;
         }
     }
 
