@@ -41,8 +41,10 @@ var index;
 
 var addlog = ['onload'];
 var removelog = [];
-var addcomment = ['onload', 'all'];
+var addcomment = ['onload', 'Exception', 'getWI'];
+addcomment = [];
 var removecomment = [];
+
 
 function all(url, json, callBack, item, source, get) {
 	
@@ -587,7 +589,9 @@ window.onload = function() {
 	
 }
 
-
+function logError(funct, item, text, ln, e){
+	log('Exception', funct + item, text + e.stack, ln);
+}
 function log(funct, item, text, ln){
 	var consolelog = false;
 	var commentlog = false;
@@ -881,7 +885,11 @@ function getWI(id){
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
-		return rTrans.get(id);
+		var obj = null;
+		try{obj = rTrans.get(id)}catch(e){
+			logError('getWI', 'Excpetion', "Not found " + id, ln(), e);
+		}
+		return obj;
 	}	
 }
 
