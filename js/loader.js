@@ -560,7 +560,12 @@ function loadToken(context) {
 var key = "";
 var device = "";
 window.onload = function() {
-	alert(localStorage.getItem(site + "token"));
+	//alert(localStorage.getItem(site + "token"));
+	var storedkey = localStorage.getItem(site + "token");
+	if(storedkey == null || key == storedkey){
+		$('#accessModal').modal('show');
+		return;
+	}
 	key = btoa(":" + localStorage.getItem(site + "token"));
 	//alert(key);
 	log('onload', 'startlog', "Starting loading", ln());
