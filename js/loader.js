@@ -566,7 +566,7 @@ window.onload = function() {
 }
 var addlog = ['onload'];
 var removelog = [];
-var addcomment = [];
+var addcomment = ['onload'];
 var removecomment = [];
 
 function log(funct, item, text, ln){
