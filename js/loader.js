@@ -1,152 +1,90 @@
 
-function post(url, json, callBack, item) {
-	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
-	bases[base] = item + url + key;
-	var data = getText(fileserver + "images/" + base + ".js");
-	console.log("Data: " + data);
-	if(data != undefined && data != null && data != ""){
-		console.log(data);
-        callBack(data);
-		console.log("Image found: " + img);
-    }else{ 
-		var data = getWithExpiry(base);
-		if(data != null) {
-			//console.log('PostingDB: ' + item);
-			callBack(data);
-			return;
-		}
-		
-		var xhr = new XMLHttpRequest();
-		xhr.open('POST', url, true);
-		xhr.setRequestHeader('Authorization', 'Basic ' + key);
-		xhr.setRequestHeader('Content-Type', 'application/json');
-		xhr.onreadystatechange = function() {
-			if(xhr.readyState == XMLHttpRequest.DONE){
-				if (this.status == 200) { 
-					handleCaller(this, base, callBack, item);
-				}else if(this.status == 409){
-					setTimeout(post(url, json, callBack, item), 60000);
+function all(url, json, callBack, item, source, get) {
+	
+	if(source == null || source == undefined) source = false;
+	var storedItem;
+	if(!source && url.includes('workitems/')){
+		var startindex = url.indexOf('workitems/');
+		var endindex = url.indexOf('?');
+		storedItem = url.substring(startindex + 10, endindex);
+		var has = getWI(storedItem);
+		if(has != null) source = true;
+	}
+	if(item == "uploadImage") source = true;
+	if(item == "loadCommit" || item == 'loadToken' || item == 'loadRepos' || item.includes('Css') || item.includes('Session')) source = true;
+	var base = (btoa(item + url + key + config[site + 'version']).hashCode() + "").replace("-","C");
+	bases[base] = item + url + key ;
+	console.log("Getting from post: " + item + url + "--" + base);
+	
+	$.ajax({
+		url: source ? url : fileserver + "images/" + base + ".js",
+		type : get ? 'GET' : source ? 'POST' : 'GET',
+		data: get ? null : source ? json : null,
+		async: true,
+		headers: { 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
+		cache: true,
+		success: function (str,sta,xhr) {
+			if(xhr.status == 200){
+				handleCaller(str, base, callBack, item, source);
+				if(storedItem != undefined && storedItem != maxId){
+					removeWI(storedItem);
 				}
-				else{
-					console.log('Posting failed: ' + this.status + url + ":" + item + ":" + json);
+			}else{
+				if(!source){
+					all(url, json, callBack, item, true, get);
 				}
+			}
+		},
+		failure: function (str,sta,xhr) {
+				console.log("GET Failure: " + url);
+			if(!source){
+					all(url, json, callBack, item, true, get);
 				}
-		}
-		xhr.send(json);
-		}	
+		},
+		error: function (str,sta,xhr) {
+				console.log("GET Error: " + url);
+			if(!source){
+					all(url, json, callBack, item, true, get);
+				}
+		},
+	});	
 }
 
-function getText(url){
-    // read text from URL location
-    var request = new XMLHttpRequest();
-    request.open('GET', url, true);
-    request.send(null);
-    request.onreadystatechange = function () {
-        if (request.readyState === 4 && request.status === 200) {
-            var type = request.getResponseHeader('Content-Type');
-            if (type.indexOf("text") !== 1) {
-                return request.responseText;
-            }
-        }
-    }
+function post(url, json, callBack, item, source){
+	if(source == null || source == undefined) source = false;
+	all(url, json, callBack, item, source, false)
 }
+
+var clientversion = '2022-09-09-01;'
+
+function get(url, callBack, item, source){
+	if(source == null || source == undefined) source = false;
+	
+	all(url, null, callBack, item, source, true)
+}
+
 
 var ttls = [];
-
-function setWithExpiry(key, value, ttl) {
-	const now = new Date();
-	const item = {
-		value: value,
-		expiry: now.getTime() + ttl,
-	}
-	//localStorage.setItem(key, JSON.stringify(item));
-}
-
-function getWithExpiry(key) {
-	const itemStr = localStorage.getItem(key)
-	if (!itemStr) {
-		return null
-	}
-	const item = JSON.parse(itemStr);
-	const now = new Date();
-	if (now.getTime() > item.expiry) {
-		localStorage.removeItem(key);
-		return null
-	}
-	return item.value;
-}
-
 var config = {};
 var bases = {};
 config["ttl"] = 5000;
 var ttls = {};
-function handleCaller(context, base, callBack, item){	
-	var currttl = ttls[item];
-	if(currttl == null) currttl = config["ttl"];
-	setWithExpiry(base, context.responseText, currttl);
-	if(context.responseText != "" && context.responseText != null && context.responseText != undefined){
-		console.log("Item: " + item);		
-		callBack(context.responseText);
+
+function handleCaller(context, base, callBack, item, source){	
+	if(context != "" && context != null && context != undefined){
+		console.log("Item: " + item);
+		callBack(context);
 		
 		if(!item.includes("Repo") && !item.includes("repo") && !item.includes("loadToken") && !item.includes("uploadImage") && !item.includes("repoImage") && !item.includes("commit")  && !item.includes("Commit")){
-			var json = JSON.stringify(context.responseText);
-			
-			var fileContent = context.responseText;
-			var bb = new Blob([fileContent ], { type: 'text/plain' });
-			var a = document.createElement('a');
-			a.download = base + ".js";
-			a.href = window.URL.createObjectURL(bb);
-			//a.click();
-			
-			repoImage("", json, base + ".js", 'rawtext');
-		}
-	}
-}
-
-function get(url, callBack, item) {
-	console.log("Getting: " + item);
-	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
-	bases[base] = item + url + key;
-	if(item.includes("commit") || item.includes("Commit")){
-		getPath(base, url, callBack, item);
-	}else{
-		var data = getText(fileserver + "images/" + base + ".js");
-		if(data != undefined && data != null && data != ""){
-			console.log(data);
-			callBack(data);
-			console.log("Image found: " + img);
-		}else{
-			getPath(base, url, callBack, item);		
-		}
-	}
-	
-}
-
-function getPath(base, url, callBack, item){
-	var data = getWithExpiry(base);
-		//console.log('Getting len: ' + item + data);
-		if(data != null) {
-			callBack(data);
-			return;
-		}
-		var xhr = new XMLHttpRequest();
-		xhr.open('GET', url);
-		xhr.setRequestHeader('Authorization', 'Basic ' + key);
-		xhr.onreadystatechange  = function() {
-			if(xhr.readyState == XMLHttpRequest.DONE){
-				if (this.status == 200) {
-					return handleCaller(this, base, callBack, item);
-				}else{
-					if(url.includes('Session') && this.status != 200 ){
-						$('#accessModal').modal('show');
-						document.getElementById('genTokenDiv').style.display = 'block';
-					}
-					console.log('Getting failed: ' + this.status + ":" + item + ":" + url);
-				}
+			var json = JSON.stringify(context);
+			if(source){	
+				console.log("Repoing...");
+				repoImage("", json, base + ".js", 'rawtext');
 			}
 		}
-		xhr.send();
+	}
 }
+
 
 
 function saveToken(){
@@ -204,9 +142,11 @@ function repoImage(imageUrl, base64, name, type){
 	var obj = {};
 	obj.filename = filename;
 	obj.base64 = base64;
-	obj.type = type
+	obj.type = type;
+	console.log("Duplicate: " + objs.filter(item => item.filename == filename).length);
+	if(objs.filter(item => item.filename == filename).length > 0) return;
 	objs.push(obj);
-	if(objs.length < 10) return; 
+	if(objs.length < 5) return; 
 	if(repo == ""){
 		console.log("No repo: " + imageUrl + name);
 		return;
@@ -246,8 +186,9 @@ function repoImage(imageUrl, base64, name, type){
 		  ]
 		}
 	);
-	//console.log(json);
+	console.log(json);
 	post(url_org + '/' + path_push.replace('###repositoryId###', repo), json, uploadImage, 'uploadImage' + name);
+	commitTime = 1000;
 	objs = [];
 }
 
@@ -296,12 +237,12 @@ function createToken(id){
 }
 
 function getToken(context){
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	localStorage.setItem('RequestToken', result.id);
 }
 
 function getComment(context){	
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	var arr = result.text.split(';');
 	if(arr.length > 1){
 		document.getElementById('newToken').innerHTML = arr[1];
@@ -311,7 +252,7 @@ function getComment(context){
 }
 
 function uploadImage(context) {
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		console.log('Uploaded Image: ' + uploadImage);
 		if(result.commits.length >0){
 			//commit = result.commits[0].commitId;
@@ -365,7 +306,7 @@ var index;
 
 
 function loadConfig(context) {
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		var ids = "",
 			sep = "";
 		for (var i in result.workItems) {
@@ -376,7 +317,7 @@ function loadConfig(context) {
 }
 
 function loadConfigItems(context) {
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	var ids = '',
 		sep = '';
 	for (var i in result.relations) {
@@ -388,10 +329,11 @@ function loadConfigItems(context) {
 
 
 function loadConfigValues(context) {
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		for (var i in result.value) {
 			console.log("Config: " + result.value[i].fields['System.Title'] + ":" + result.value[i].fields['Custom.Text']);
 			config[result.value[i].fields['System.Title']] = result.value[i].fields['Custom.Text'];
+			
 			//document.body.innerHTML = document.body.innerHTML.replaceAll("config['" + result.value[i].fields['System.Title'] +"']" , config[result.value[i].fields['System.Title']]);
 		}
 }
@@ -402,23 +344,26 @@ function en(c){var x='charCodeAt',b,e={},f=c.split(""),d=[],a=f[0],g=256;for(b=1
 function de(b){var a,e={},d=b.split(""),c=f=d[0],g=[c],h=o=256;for(b=1;b<d.length;b++)a=d[b].charCodeAt(0),a=h>a?d[b]:e[a]?e[a]:f+c,g.push(a),c=a.charAt(0),e[o]=f+c,o++,f=a;return g.join("")}
 
 function loadRepos(context) {
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		repo = result.value.find(item => item.project.name == "Sunglass").id;
 		fetchCommit();
 		//console.log("Repo: " + repo);
 }
+
+var commitTime = 1000;
 function fetchCommit(){
 	get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
-	setTimeout('fetchCommit()', 1000);
+	setTimeout('fetchCommit()', commitTime);
+	commitTime = commitTime * 2;
 }
 
 var commit = "";
 function loadCommit(context) {
-		var result = JSON.parse(context);
-		if(result.value.length > 0){
-			commit = result.value[0].commitId;
-			console.log('Commit ' + commit);
-		}
+	var result = getResult(context);
+	if(result.value.length > 0){
+		commit = result.value[0].commitId;
+		console.log('Commit ' + commit);
+	}
 }
 
 var jsonConfig = JSON.stringify({
@@ -443,7 +388,7 @@ function formatDate(date) {
 }
 
 function loadQueries(context) {		
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	for (var i in result.workItems) {
 		getItemText(result.workItems[i].id);
 	}
@@ -460,7 +405,7 @@ post(url_team + '/' + path_wiql, JSON.stringify({
  }
 
 function getItemValue(context) {
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		var title = result.fields['System.Title'];
 		queries[title] = stripHtml(result.fields['Custom.Data']);
 		console.log(title);
@@ -506,16 +451,16 @@ function getItemValue(context) {
 }
 
 function loadImages(context){
-	var results = JSON.parse(context);
+	var results = getResult(context);
 	for(var i = 0; i < results.workItems.length; i++){
 		console.log("image: " + results.workItems[i].id);
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", results.workItems[i].id), loadImageItem, 'loadImageItem'   + results.workItems[i].id);
 	}
 }
 
-var fileserver = "";
+var fileserver = "http://localhost:7070/";
 function loadImageItem(context){
-	var results = JSON.parse(context);
+	var results = getResult(context);
 	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
 	var url = rel.url;
 	var file = rel.attributes.name;
@@ -565,8 +510,7 @@ function stripScript(html, item) {
 var queries = []
 
 function loadToken(context) {
-	//console.log(context);
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	var date = new Date(result.value.find(x => x.displayName == site + 'Token').validTo);
 	tokenDate = date.toString('YY MM DD');
 	document.getElementById('tokenDateId').innerHTML = 'Valid until ' +  formatDate(tokenDate);
@@ -579,16 +523,35 @@ window.onload = function() {
 	//alert(localStorage.getItem(site + "token"));
 	key = btoa(":" + localStorage.getItem(site + "token"));
 	//alert(key);
+	createDB();
+	getLastDate();
+	if(maxDate == null){
+		maxDate = getCurentDate();
+	}
 	get('https://vssps.dev.azure.com/kukhanya' + '/_apis/Token/SessionTokens?api-version=5.0-preview', loadToken, 'loadToken');	
 
 	var json = JSON.stringify({
-		"query": "Select [System.Id], [System.Title], [System.Description] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
+		"query": "Select [System.Id], [System.Title], [System.Description], [Custom.Text] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
 	});
 	post(url_team + '/' + path_wiql, json, getRelaysWiql, 'getRelaysWiql');
+	json = JSON.stringify({
+		"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] > '" + maxDate + "'"
+	});
+	post(url_team + '/' + path_wiql, json, getUpdatedWI, 'getUpdatedWI');
+	
 	get(url_org + '/' + path_repo, loadRepos, 'loadRepos');
 	device = new DeviceUUID().get();
-	$('#accessModal').modal('show');
 	
+}
+
+function getCurentDate(){
+	var today = new Date();
+	var dd = String(today.getDate()).padStart(2, '0');
+	var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+	var yyyy = today.getFullYear();
+	
+	today = yyyy + '-' + mm + '-' + dd;
+	return today;
 }
 
 function sendAccessWhatsapp(){
@@ -601,7 +564,7 @@ window.location.href = "mailto:bonganihlong@icloud.com?subject=RequestAccess&bod
 
 function menuHtml(context) {
 	try{
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		//console.log(context);
 		for (var i in result.workItems) {
 			get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getHtml, 'getHtml' + result.workItems[i].id);
@@ -613,7 +576,7 @@ function menuHtml(context) {
 
 async function getHtml(context) {
 	try{
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		console.log(result.fields['System.Title'] + "-" + result.fields['Custom.Text']);
 		document.getElementById(result.fields['Custom.Text']).innerHTML = stripHtml(result.fields['Custom.Data']).replace('&nbsp', '').replaceAll("###Title###", result.fields['System.Title']).replaceAll("###Description###", result.fields['System.Description']);
 		loadRelation(result.relations);
@@ -622,8 +585,6 @@ async function getHtml(context) {
 		console.log(context);
 	}
 }
-
-
 
 
 function loadRelation(relations, ext){
@@ -662,7 +623,7 @@ var globalcss = null;
 var cssDone = false;
 var cssCount = 0;
 function getRelation(context){
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	console.log("getRelation");
 	
 	var css = result.value.filter(item => item.fields["Custom.Type"] == "Css");
@@ -673,7 +634,7 @@ function getRelation(context){
 		if(relay[i].fields['Custom.Text'] != undefined && relay[i].fields['Custom.Text'] != ""){
 			var dest = relay[i].fields['Custom.Text'].split('/');
 			if(dest.length > 1){
-				//get(url_org + "/" + dest[0] + '/' + path_workitem.replaceAll("#ids#", dest[1]), getGeneric, 'getGeneric' + dest[1]);
+				get(url_org + "/" + dest[0] + '/' + path_workitem.replaceAll("#ids#", dest[1]), getGeneric, 'getGeneric' + dest[1]);
 			} 
 		}
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", relay[i].fields['System.Id'] ), getGeneric, 'getGeneric' + relay[i].fields['System.Id']);
@@ -683,7 +644,7 @@ function getRelation(context){
 		if(globalcss == null) {
 			globalcss = css;
 			cssCount++;
-		}else if(cssCount == 6){
+		}else if(cssCount == 4){
 			globalcss = globalcss.concat(css);
 			css = globalcss;
 			css = css.sort((a, b) => a.fields['Custom.Order'] > b.fields['Custom.Order'] ? 1 : -1);
@@ -708,7 +669,7 @@ function getRelation(context){
 			}
 			if(!cssDone){
 				$('head').append("<style>" + scripts + "</style>");
-				//console.log(scripts);
+				console.log(scripts);
 				cssDone = true;
 				globalcss = null;
 			}
@@ -729,15 +690,17 @@ function getRelation(context){
 
 function getRelay(context){
 	try{
-		var result = JSON.parse(context);
+		var result = getResult(context);
+		var text = result.fields['Custom.Text'];
+		if(text == undefined || text == null) text = "";
 		//console.log(context);
-		console.log("Relay:" + result.id + result.fields['Custom.Text'] );
-		if(result.fields['Custom.Text'] == "Batch"){
-			loadRelation(result.relations, result.fields['Custom.Text']);
+		console.log("Relay:" + result.id +  text);
+		if(text == "Batch"){
+			loadRelation(result.relations, text);
 		}else{
-			loadRelation(result.relations, result.fields['Custom.Text']);
-			if(result.fields['Custom.Text'] != undefined && result.fields['Custom.Text'] != ""){
-				var dest = result.fields['Custom.Text'].split('/');
+			loadRelation(result.relations, text);
+			if(text != ""){
+				var dest = text.split('/');
 				if(dest.length > 1){
 					get(url_org + "/" + dest[0] + '/' + path_workitem.replaceAll("#ids#", dest[1]), getRelay, 'getRelay' + dest[1]);
 				}
@@ -752,25 +715,195 @@ function getRelay(context){
 }
 
 function getRelaysWiql(context){
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	console.log("getRelaysWiql: " + result.workItems[0].id);	
 	for (var i in result.workItems) {
 		get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getRelay, 'getRelay' + result.workItems[i].id);
 	}
 }
 
+var workitems = [];
+var maxDate = "2022-09-08";
+var maxId;
+
+function getUpdatedWI(context){
+	var result = getResult(context);
+	var ids = [];
+	for (var i in result.workItems) {
+		var updatedwi = {};
+		ids.push(parseInt(result.workItems[i].id));
+		updatedwi.date = currDate;
+	}
+	var json = JSON.stringify({"ids":   ids  ,  "fields": [    "System.Id",    "System.ChangedDate"]});	
+				post(url_org + "/Css/" + path_batch, json, addWIs, 'addWIs');
+	
+}
+
+
+function getLastDate(){
+	var request = window.indexedDB.open(site + "Database", 1);
+	request.onsuccess = function(event) {
+		var db = event.target.result;
+		var store = db.transaction("workitems", "readwrite").objectStore("workitems");
+		var index = store.index('by_date');
+		var request = index.openCursor(/*query*/null, /*direction*/'prev');
+		request.onsuccess = function() {
+		  var cursor = request.result;
+		  if (cursor) {
+			maxDate = cursor.key;
+			  maxId = cursor.id;
+		    console.log('max date is: ' + cursor.key);
+		  } else {
+		    console.log('no records!');
+		  }
+		};
+	}	
+	
+}
+
+
+
+function addWIs(context){
+	var result = getResult(context);	
+	var css = result.value.filter(item => item.fields["Custom.Type"] == "Css")
+	for (var i in result.value) {
+		var updatedwi = {};
+		updatedwi.id = result.value[i]["System.Id"] ;
+		updatedwi.date = result.value[i]["System.ChangedDate"] 
+	
+		if(getWI(updatedwi.id) != null){
+			updateWI(updatedwi);
+		}else{
+			addWI(result.workItems[i].id, updatedwi.date);
+		}
+	}
+	
+}
+
+function getWI(id){
+	var request = window.indexedDB.open(site + "Database", 1);
+	request.onsuccess = function(event) {
+		var db = event.target.result;
+		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
+		return rTrans.get(id);
+	}	
+}
+
+function updateWI(obj){
+	var request = window.indexedDB.open(site + "Database", 1);
+	request.onsuccess = function(event) {
+		var db = event.target.result;
+		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
+		return rTrans.put(obj);
+	}	
+}
+
+function removeWI(id){
+	var request = window.indexedDB.open(site + "Database", 1);
+	request.onsuccess = function(event) {
+		var db = event.target.result;
+		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
+		return rTrans.delete(id);
+	}	
+}
+
+function createDB(){
+	var request = window.indexedDB.open(site + "Database", 1);
+	request.onupgradeneeded = function(event) {
+        var db = event.target.result;
+        var oS = db.createObjectStore("workitems", { keyPath: "id" });
+			oS.createIndex('by_date', 'date');
+	        oS.createIndex("id", "id", { unique: true });
+        };
+}
+
+function addWI(id, date) {
+
+    
+    window.indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+    window.IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction || window.msIDBTransaction || {READ_WRITE: "readwrite"}; // This line should only be needed if it is needed to support the object's constants for older browsers
+    window.IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
+
+    if (!window.indexedDB) {
+        console.log("Your browser doesn't support a stable version of IndexedDB. Such and such feature will not be available.");
+        } else { 
+        console.log("You're good to go with IndexedDB");
+        };
+
+    var request = window.indexedDB.open(site + "Database", 1);
+
+    var b = (function () {
+      var c = [];
+      return function () {
+        c.push({id: id, date: date});
+        return c;
+        }
+    })();
+
+    request.onerror = function(event) {
+        console.log("PleaseTry again", event);
+        };
+
+    var d = b();
+    console.log(d);
+    console.log("New data: ", d, d.isArray);
+    d.forEach(function(rest) {
+        console.log("I: ", d);
+        });
+
+    request.onupgradeneeded = function(event) {
+        console.log('(WINR.UGN)Within request.upgradeneeded');
+
+        var db = event.target.result;
+        console.log("(WINR.UGN) db:", db);
+
+        var oS = db.createObjectStore("workitems", { keyPath: "id" });
+			oS.createIndex('by_date', 'date');
+	        oS.createIndex("id", "id", { unique: true });
+        };
+
+    request.onsuccess = function(event) {
+        console.log('(WOR.NS) Within request.onsuccess');
+        var db = event.target.result;
+        console.log("(WOR.NS) db= ", db);
+
+        var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems"); 
+
+        d.forEach(function(item) {
+            rTrans.add(item);
+            console.log("You followed directions! Well done. var item: ", item, "stored with this transaction: ", rTrans);
+            });
+
+        rTrans.oncomplete = function () {
+            console.log("CONGRATULATIONS.");
+            }
+        };
+
+    request.onupgradeneeded.onerror = function(event) {
+        console.log("err", event);
+        }
+    }
+
+
 function getRelays(context){
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	if(result.workItems.length > 0){
 		console.log("getRelays"  + result.workItems[0].id);	
 		for (var i in result.workItems) {
-			//get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getRelay, 'getRelay' + result.workItems[i].id);
+			get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getRelay, 'getRelay' + result.workItems[i].id);
 		}
 	}
 }
 
+function getResult(context){
+	var result = context;
+	try{result = JSON.parse(context); result = JSON.parse(result);}catch(e){}
+	return result;
+}
+	
+
 function getGeneric(context){
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	console.log("Generic " + result.id + result.fields['Custom.Type'] + result.fields['System.State']);
 	if(result.fields['System.State'] == 'New' || result.fields['System.State'] == "Active"){
 	switch (result.fields['Custom.Type']) {
@@ -838,7 +971,7 @@ async function waitForElm(selector) {
 function loadScript(context) {
 	
 	try{
-		var result = JSON.parse(context);
+		var result = getResult(context);;
 		for (var i in result.workItems) {
 			get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getScript, 'getScript' + result.workItems[i].id);
 		}
@@ -855,7 +988,7 @@ function loadScript(context) {
 
 function loadCss(context) {
 	try{
-		var result = JSON.parse(context);
+		var result = getResult(context);
 		console.log("CSSFILES: " + result.workItems.length);
 		for (var i in result.workItems) {
 			get(url_proj + '/' + path_workitem.replaceAll("#ids#", result.workItems[i].id), getCss, 'getCss' + result.workItems[i].id);
@@ -869,8 +1002,7 @@ function loadCss(context) {
 
 function getCss(context){	
 try{
-	//console.log(context);
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	console.log(result.fields['System.Title'] + " --css-- ");
 	if(result.fields['Custom.Data'].includes("@import")){
 			console.log("CSSFILES: " + stripHtml(result.fields['Custom.Data']));
@@ -895,7 +1027,7 @@ try{
 
 function getScript(context) {
 	try{
-	var result = JSON.parse(context);
+	var result = getResult(context);
 	console.log("---" + stripScript(result.fields['System.Title']).replace('\t', ''));
 	var e = document.createElement('script');
 	e.text = stripScript(result.fields['Custom.Data'].replaceAll('###Text###', result.fields['Custom.Text']), result.fields['System.Title']);
