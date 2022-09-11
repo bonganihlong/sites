@@ -1,0 +1,1 @@
+{"queryType":"flat","queryResultType":"workItem","asOf":"2022-09-11T12:43:16.87Z","columns":[{"referenceName":"System.Id","name":"ID","url":"https://dev.azure.com/kukhanya/_apis/wit/fields/System.Id"}],"workItems":[{"id":16923,"url":"https://dev.azure.com/kukhanya/8e9af444-30a4-43ee-a674-412f43e7f9d6/_apis/wit/workItems/16923"}]}
