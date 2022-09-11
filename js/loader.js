@@ -515,7 +515,7 @@ function loadImages(context){
 	}
 }
 
-var fileserver = "http://localhost:7070/";
+var fileserver = "";
 function loadImageItem(context){
 	var results = getResult(context);
 	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
