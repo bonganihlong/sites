@@ -41,7 +41,7 @@ var index;
 var addlog = ['onload', 'loadRepos'];
 var removelog = ['context'];
 var addcomment = ['onload', 'Exception', 'getWI'];
-addcomment = [];
+//addcomment = [];
 var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {	
