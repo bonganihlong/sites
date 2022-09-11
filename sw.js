@@ -14,17 +14,16 @@ const putInCache = async (request, response) => {
 	}
 };
 
-var noncached = ["loader.js", "sw.js", "index.js"]
+var noncached = ["loader.js", "sw.js", "index.js", "commit"]
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
-  console.log("SW: " + request.url.split('/').pop());
   if(request.url.includes("tracking.js")){
 	  return new Response('Network error happened', {
       status: 404,
       headers: { 'Content-Type': 'text/plain' },
     });
   }
-  if(!noncached.includes(request.url.split('/').pop())){
+  if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit')){
   const responseFromCache = await caches.match(request);
   if (responseFromCache) {
     return responseFromCache;
@@ -33,7 +32,6 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // Next try to get the resource from the network
   try {
     const responseFromNetwork = await fetch(request);
-	console.log("SW: " + request.url);
     putInCache(request, responseFromNetwork.clone());
     return responseFromNetwork;
   } catch (error) {
