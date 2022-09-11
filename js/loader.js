@@ -39,9 +39,9 @@ var idsArr = [];
 var index;
 
 var addlog = ['onload', 'loadRepos'];
-var removelog = [];
+var removelog = ['context'];
 var addcomment = ['onload', 'Exception', 'getWI'];
-//addcomment = [];
+addcomment = [];
 var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {	
@@ -60,18 +60,22 @@ function all(url, json, callBack, item, source, get) {
 	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
 	bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
+
+	if(base.includes('1944924699')){
+			var t = "";
+		}
 	
 	$.ajax({
 		url: source ? url : fileserver + "images/" + base + ".js",
 		type : get ? 'GET' : source ? 'POST' : 'GET',
 		data: get ? null : source ? json : null,
 		async: true,
-		headers: { 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
+		headers: { 'Item-Requested': item, 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
 		cache: true,
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
 				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + storedItem, ln());
-				handleCaller(str, base, callBack, item, source, get);
+				(handleCaller)(str, base, callBack, item, source, get);
 				if(storedItem != undefined && storedItem != maxId){
 					log('all', 'success', "Removing item: " + storedItem, ln());
 					removeWI(storedItem);
@@ -105,7 +109,7 @@ function all(url, json, callBack, item, source, get) {
 	});	
 }
 
-var postsource = ['getUpdatedWI', 'addWIs'];
+var postsource = ['getUpdatedWI', 'addWIs', 'uploadImage'];
 
 function post(url, json, callBack, item, source){
 	if(source == null || source == undefined) source = false;
@@ -121,8 +125,12 @@ function get(url, callBack, item, source){
 }
 
 
-var repoitems = ['loadToken', 'getRelaysWiql'];
+var repoitems = ['loadToken', 'loadCommit'];
 function handleCaller(context, base, callBack, item, source, get){	
+	if(base.includes('233676904')){
+			var t = "";
+		}
+	
 	log('handleCaller', 'context', item + context , ln());
 	if(context != "" && context != null && context != undefined){
 		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
@@ -130,7 +138,7 @@ function handleCaller(context, base, callBack, item, source, get){
 		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
 		if(!repoitems.includes(item)){
 			var json = JSON.stringify(context);
-			if(source && get){	
+			if(source){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
 				repoImage("", json, base + ".js", 'rawtext');
 				log('handleCaller', 'handleCaller', "Done repoImage " + item , ln());
@@ -189,7 +197,7 @@ async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 }
 
 
-function repoImage(imageUrl, base64, name, type){
+function repoImage(imageUrl, base64, name, type, repeat){
 	
 	var filename = imageUrl.split('/').pop() + name;
 	if(filename == undefined) return;
@@ -198,19 +206,29 @@ function repoImage(imageUrl, base64, name, type){
 	obj.filename = filename;
 	obj.base64 = base64;
 	obj.type = type;
+	if(filename.includes('233676904')){
+			var t = "";
+		}
 	if(objs.filter(item => item.filename == filename).length > 0) return;
-	objs.push(obj);
-	if(objs.length < 5) return; 
+	
 	if(repo == ""){
 		console.log("No repo: " + imageUrl + name);
+		if(repeat) return;
+		setTimeout(repoImage(imageUrl, base64, name, type, true), 1000);
 		return;
 	}
 	if(commit == ""){
 		console.log("No commit: " + imageUrl + name);
 		return;
 	}
+	objs.push(obj);
+	if(objs.length < 1) return; 
+	
 	var changes = [];
 	for(var i=0; i<objs.length; i++){
+		if(objs[i].filename.includes('233676904')){
+			var t = "";
+		}
 		var curr_commit = {
 				  "changeType": "add",
 				  "item": {
@@ -393,7 +411,7 @@ function loadRepos(context) {
 function fetchCommit(){
 	get(url_org + "/" + site + '/' + path_commit.replace('###repositoryId###', repo), loadCommit, 'loadCommit');
 	setTimeout('fetchCommit()', commitTime);
-	commitTime = commitTime * 2;
+	commitTime = commitTime * 1.2;
 }
 
 var commit = "";
@@ -497,7 +515,7 @@ function loadImages(context){
 	}
 }
 
-var fileserver = "";
+var fileserver = "http://localhost:7070/";
 function loadImageItem(context){
 	var results = getResult(context);
 	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
