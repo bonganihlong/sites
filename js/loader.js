@@ -41,7 +41,7 @@ var index;
 var addlog = ['onload', 'loadRepos'];
 var removelog = ['context'];
 var addcomment = ['onload', 'Exception', 'getWI'];
-//addcomment = [];
+addcomment = [];
 var removecomment = [];
 
 function all(url, json, callBack, item, source, get) {	
@@ -125,9 +125,9 @@ function get(url, callBack, item, source){
 }
 
 
-var repoitems = ['loadToken', 'loadCommit'];
+var repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs'];
 function handleCaller(context, base, callBack, item, source, get){	
-	if(base.includes('233676904')){
+	if(base.includes('1838175636')){
 			var t = "";
 		}
 	
@@ -186,7 +186,7 @@ async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 			};
 			reader.readAsDataURL(blob);
 		};
-		blobToBase64(blob, repoImage);
+		//blobToBase64(blob, repoImage);
 		
 		document.getElementById(imageId + '_div').style.display = 'block';
 	} catch (e) {
@@ -226,7 +226,7 @@ function repoImage(imageUrl, base64, name, type, repeat){
 	
 	var changes = [];
 	for(var i=0; i<objs.length; i++){
-		if(objs[i].filename.includes('233676904')){
+		if(objs[i].filename.includes('C237220525')){
 			var t = "";
 		}
 		var curr_commit = {
