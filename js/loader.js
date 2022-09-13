@@ -170,6 +170,8 @@ function saveToken(){
 	}else{
 		config.user = data;
 		config.token = $('#tokenId').val();
+		localStorage.setItem(config.site + 'userId', config.user);
+		localStorage.setItem(config.site + "token", config.token);
 		$('#accessModal').modal('hide');
 		saveConfig();
 	}
