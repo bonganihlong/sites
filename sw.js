@@ -8,13 +8,14 @@ const putInCache = async (request, response) => {
 	try{
   await cache.put(request, response);
 	}catch(e){
-		console.log('Error cannot cache: ' + request.url.split('/').pop())
+		//console.log('Error cannot cache: ' + request.url.split('/').pop())
 	
 	}
 	}
 };
 
-var noncached = ["loader.js", "sw.js", "index.js", "commit"]
+var noncached = [ "loader.js","sw.js", "commit"];
+noncached = ['loader.js', 'commit'];
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
   if(request.url.includes("tracking.js")){
