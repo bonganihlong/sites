@@ -5,7 +5,7 @@ if (navigator && navigator.serviceWorker) {
 
 
 if (navigator && navigator.storage) {
-    let storageManager = navigator.storage
+    var storageManager = navigator.storage
     //storageManager.estimate().then((result)=> console.log(result));
 }
 
