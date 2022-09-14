@@ -167,7 +167,7 @@ function handleCaller(context, base, callBack, item, source, get){
 		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
 		callBack(context);		
 		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
-		if(config.repoitems.findIndex(element => item.includes(element)) == -1){
+		if(serachIncludes(item, config.repoitems)){
 			var json = JSON.stringify(context);
 			if(source){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
@@ -761,7 +761,7 @@ function createDB(){
 		log('createDB', 'creatingstore', "Store created", ln());
 }
 function addWI(id, date) {
-    var request = window.indexedDB.open(site + "Database", 1);
+    var request = window.indexedDB.open(config.site + "Database", 1);
 
     var b = (function () {
       var c = [];
