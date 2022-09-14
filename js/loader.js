@@ -212,10 +212,10 @@ function fetchWithAuthentication(url, authToken) {
 	});
 }
 
-async function displayProtectedImage(imageId, imageUrl, authToken, name) {
+function displayProtectedImage(imageId, imageUrl, authToken, name) {
 	try {
-		const response = await fetchWithAuthentication(imageUrl, authToken);
-		const blob = await response.blob();		
+		const response = fetchWithAuthentication(imageUrl, authToken);
+		const blob = response.blob();		
 		const objectUrl = URL.createObjectURL(blob);		
 		const imageElement = document.getElementById(imageId);
 		imageElement.src = objectUrl;
@@ -624,7 +624,7 @@ function menuHtml(context) {
 		logError('menuHtml', 'Excpetion', "", ln(), e);
 	}
 }
-async function getHtml(context) {
+ function getHtml(context) {
 	try{
 		var result = getResult(context);
 		document.getElementById(result.fields['Custom.Text']).innerHTML = stripHtml(result.fields['Custom.Data']).replace('&nbsp', '').replaceAll("###Title###", result.fields['System.Title']).replaceAll("###Description###", result.fields['System.Description']);
