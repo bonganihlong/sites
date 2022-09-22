@@ -11,7 +11,7 @@ function setConfigs(){
 		config.commitTime = 1000;		
 		config.base = 'https://dev.azure.com';
 		config.vs = 'https://vssps.dev.azure.com/kukhanya';
-		config.fileserver = "http://localhost:7070/";
+		config.fileserver = "";
 		config.org = 'kukhanya';
 		config.project = 'FormForm';
 		config.projectCSS = 'CSS';
@@ -36,13 +36,13 @@ function setConfigs(){
 		config.tokenDate = '';
 		
 		
-		config.addlog = ['onload', 'loadRepos'];
+		config.addlog = ['onload', 'loadRepos', 'Exception'];
 		config.removelog = ['context'];
-		config.addcomment = ['onload', 'Exception', 'getWI'];
+		config.addcomment = [];
 		config.removecomment = [];
 		
 		config.postsource = ['getUpdatedWI', 'addWIs', 'uploadImage', 'processComment', 'loadComment'];
-		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken'];
+		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken', 'addWIs'];
 		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment'];
 		config.repo = "";
 		config.key = "";
@@ -132,7 +132,7 @@ function all(url, json, callBack, item, source, get) {
 
 function search(nameKey, myArray){
     for (var i=0; i < myArray.length; i++) {
-        if (myArray[i].name === nameKey) {
+        if (myArray[i] === nameKey) {
             return true;
         }
     }
@@ -141,7 +141,7 @@ function search(nameKey, myArray){
 
 function searchIncludes(nameKey, myArray){
     for (var i=0; i < myArray.length; i++) {
-        if (nameKey.includes(myArray[i].name)) {
+        if (nameKey.includes(myArray[i])) {
             return true;
         }
     }
@@ -167,7 +167,7 @@ function handleCaller(context, base, callBack, item, source, get){
 		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
 		callBack(context);		
 		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
-		if(serachIncludes(item, config.repoitems)){
+		if(searchIncludes(item, config.repoitems)){
 			var json = JSON.stringify(context);
 			if(source){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
@@ -232,7 +232,7 @@ function displayProtectedImage(imageId, imageUrl, authToken, name) {
 		
 		document.getElementById(imageId + '_div').style.display = 'block';
 	} catch (e) {
-		logError('displayProtectedImage', 'Excpetion', imageUrl + ":" + imageId + name, ln(), e);
+		logError('displayProtectedImage', 'Exception', imageUrl + ":" + imageId + name, ln(), e);
 		
 	}
 }
@@ -246,7 +246,7 @@ function repoImage(imageUrl, base64, name, type, repeat){
 		obj.filename = filename;
 		obj.base64 = base64;
 		obj.type = type;
-		if(objs.filter(item => item.filename == filename).length > 0) return;
+		//if(objs.filter(item => item.filename == filename).length > 0) return;
 		
 		objs.push(obj);
 		if(objs.length < 1) return; 
@@ -313,6 +313,14 @@ String.prototype.hashCode = function() {
   return hash;
 };
 
+String.prototype.replaceAllEx = function(item, str) {
+	if(this.includes(item)){
+		return this.replace(item, str).replaceAllEx(item, str);
+	}else{
+		return this;
+	}
+}
+
 function createToken(id){			
 	var request = localStorage.getItem('RequestToken');
 	if(request == undefined || request == null){
@@ -338,7 +346,7 @@ function getComment(context){
 		var arr = getResult(context).text.split(';');
 		document.getElementById('newToken').innerHTML = arr.length > 1 ? arr[1] : 'New Token Requested';
 	}catch(e){
-		logError('getComment', 'Excpetion', context, ln(), e);
+		logError('getComment', 'Exception', context, ln(), e);
 	}
 }
 function uploadImage(context) {
@@ -362,7 +370,7 @@ function loadConfig(context) {
 	}
 	prepareCall(ids, "", 'loadConfigItems');
 	}catch(e){
-		logError('loadConfig', 'Excpetion', context, ln(), e);
+		logError('loadConfig', 'Exception', context, ln(), e);
 	}
 }
 
@@ -389,9 +397,22 @@ function en(c){var x='charCodeAt',b,e={},f=c.split(""),d=[],a=f[0],g=256;for(b=1
 function de(b){var a,e={},d=b.split(""),c=f=d[0],g=[c],h=o=256;for(b=1;b<d.length;b++)a=d[b].charCodeAt(0),a=h>a?d[b]:e[a]?e[a]:f+c,g.push(a),c=a.charAt(0),e[o]=f+c,o++,f=a;return g.join("")}
 
 var repo = "";
+function getObject(objs, mainindex, obj, item, index, str){
+	if(item.length > index) {
+		var obj = obj[item[index]];
+		return getObject(objs, mainindex, obj, item, ++index, str);
+	}
+	if(str == obj) return objs[mainindex];
+	if(objs.length > mainindex) {
+		mainindex++;
+		return getObject(objs, mainindex, objs[mainindex], item, 0, str)
+	}
+	return null;
+}
 function loadRepos(context) {
 	log('loadRepos', 'loadinging repo', "Getting repos", ln());
-	repo = result = getResult(context).value.find(item => item.project.name == "Sunglass").id;
+	var result = getResult(context);	
+	repo = getObject(result.value, 0, result.value[0], ["project", "name"], 0, "Sunglass").id;
 	log('loadRepos', 'loadinging repo', "RepoID:" + repo, ln());
 	fetchCommit();
 	if(config.repo != repo && repo != ""){
@@ -413,7 +434,7 @@ function loadCommit(context) {
 		var oldcommit = commit;
 		commit = result.value[0].commitId;
 		console.log('Commit ID: ' + commit);
-		if(oldcommit == ""){
+		if(oldcommit != commit){
 			repoImage("", "", "", "");
 		}
 	}
@@ -467,7 +488,7 @@ function loadImages(context){
 }
 function loadImageItem(context){
 	var results = getResult(context);
-	var rel = results.relations.find(attachment => attachment.rel == "AttachedFile");
+	var rel = getObject(results.relations, 0, results.relations[0], ["rel"], 0, "AttachedFile");
 	var url = rel.url;
 	var file = rel.attributes.name;
 	var img = url.split('/').pop();
@@ -479,7 +500,7 @@ function loadImageItem(context){
     })   
 }
 function stripHtml(html) {
-	let tmp = document.createElement("DIV");
+	var tmp = document.createElement("DIV");
 	tmp.innerHTML = html;	
 	html = tmp.textContent || tmp.innerText || "";
 	var index = html.indexOf('config[');
@@ -490,26 +511,33 @@ function stripHtml(html) {
 	}
 	return minify(html);
 }
-
+/*
 function minify( s ){
-  return s.replaceAll(/\>[\r\n ]+\</g, "><").replaceAll(/(<.*?>)|\s+/g, (m, $1) => $1 ? $1 : ' ')
-  .replaceAll(/^\s+|\r\n|\n|\r|(>)\s+(<)|\s+$/gm, '$1$2')
-  .replaceAll(/\&nbsp;/g, '').replaceAll(/&nbsp;/g, '')
-  .replaceAll(/\u00A0/g, '').replaceAll("[[","<").replaceAll("]]", ">")
+  return s.replaceAllEx(/\>[\r\n ]+\</g, "><").replaceAllEx(/(<.*?>)|\s+/g, (m, $1) => $1 ? $1 : ' ')
+  .replaceAllEx(/^\s+|\r\n|\n|\r|(>)\s+(<)|\s+$/gm, '$1$2')
+  .replaceAllEx(/\&nbsp;/g, '').replaceAllEx(/&nbsp;/g, '')
+  .replaceAllEx(/\u00A0/g, '').replaceAllEx("[[","<").replaceAllEx("]]", ">")
   .trim()
+}*/
+
+function minify(s){
+	return s.replace(/^\s+|\r\n|\n|\r|(>)\s+(<)|\s+$/gm, '$1$2')
 }
 function stripScript(html, item) {
-	let tmp = document.createElement("DIV");
+	var tmp = document.createElement("DIV");
 	tmp.innerHTML = html;
 	html = tmp.textContent || tmp.innerText || "";
 	if(html.indexOf('TEXTDIV') != -1){
-		html = html.replaceAll('TEXTDIV', item);
+		html = html.replaceAllEx('TEXTDIV', item);
 	}
 	return html;
 }
 
 function loadToken(context) {
-	document.getElementById('tokenDateId').innerHTML = 'Valid until ' +  formatDate((new Date(getResult(context).value.find(x => x.displayName == config.site + 'Token').validTo)).toString('YY MM DD'));
+	var result = getResult(context);
+	var validTo = getObject(result.value, 0, result.value[0], ["displayName"], 0, config.site + 'Token').validTo;
+	
+	document.getElementById('tokenDateId').innerHTML = 'Valid until ' +  formatDate((new Date()).toString('YY MM DD'));
 	document.getElementById("newTokenBtn").disabled = false;
 }
 window.onload = function() {	
@@ -580,7 +608,7 @@ function log(funct, item, text, ln){
 	if(consolelog){
 		console.log(ln + "-" + funct + ":" + item + ":" + text );
 	}
-	if(commentlog && item != 'prepareCallExcpetion' && item != 'addComment'){
+	if(commentlog && item != 'prepareCallException' && item != 'addComment'){
 		addComment(ln + "-" + funct + ":" +  item + ":" + text);
 	}
 }
@@ -604,7 +632,7 @@ function ln() {
 
 function getCurentDate(){
 	var today = new Date();
-	return today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+	return '2022-09-15';//today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 }
 
 function sendAccessWhatsapp(){
@@ -621,16 +649,16 @@ function menuHtml(context) {
 			prepareCall(result.workItems[i].id, "", 'getHtml');
 		}
 	}catch(e){
-		logError('menuHtml', 'Excpetion', "", ln(), e);
+		logError('menuHtml', 'Exception', "", ln(), e);
 	}
 }
  function getHtml(context) {
 	try{
 		var result = getResult(context);
-		document.getElementById(result.fields['Custom.Text']).innerHTML = stripHtml(result.fields['Custom.Data']).replace('&nbsp', '').replaceAll("###Title###", result.fields['System.Title']).replaceAll("###Description###", result.fields['System.Description']);
+		document.getElementById(result.fields['Custom.Text']).innerHTML = stripHtml(result.fields['Custom.Data']).replace('&nbsp', '').replaceAllEx("###Title###", result.fields['System.Title']).replaceAllEx("###Description###", result.fields['System.Description']);
 		loadRelation(result.relations);
 	}catch(e){
-		logError('getHtml', 'Excpetion', context, ln(), e);
+		logError('getHtml', 'Exception', context, ln(), e);
 	}
 }
 function getRelay(context){
@@ -652,7 +680,7 @@ function getRelay(context){
 			}
 		}
 	}catch(e){
-		logError('getRelay', 'Excpetion', context, ln(), e);
+		logError('getRelay', 'Exception', context, ln(), e);
 	}	
 }
 function getRelaysWiql(context){
@@ -705,7 +733,6 @@ function getLastDate(){
 }
 function addWIs(context){
 	var result = getResult(context);	
-	var css = result.value.filter(item => item.fields["Custom.Type"] == "Css")
 	for (var i in result.value) {
 		var updatedwi = {};
 		updatedwi.id = result.value[i].fields["System.Id"];
@@ -726,7 +753,7 @@ function getWI(id){
 		try{
 			obj = rTrans.get(id)
 		}catch(e){
-			logError('getWI', 'Excpetion', "Not found " + id, ln(), e);
+			logError('getWI', 'Exception', "Not found " + id, ln(), e);
 		}
 		return obj;
 	}	
@@ -772,7 +799,7 @@ function addWI(id, date) {
     })();
 
     request.onerror = function(event) {
-        log('addWI', 'Excpetion', "Not found " + id, ln());;
+        log('addWI', 'Exception', "Not found " + id, ln());;
     };
 
     var d = b();
@@ -800,7 +827,7 @@ function addWI(id, date) {
     };
 
     request.onupgradeneeded.onerror = function(event) {
-         log('addWI', 'Excpetion', "Could not upgrade ", ln());;
+         log('addWI', 'Exception', "Could not upgrade ", ln());;
     }
 }
 function getRelays(context){
@@ -852,7 +879,7 @@ function getGeneric(context){
 					item = 'loadImageItem';					
 					break;
 		}
-		get(config.url_proj + '/' + config.path_workitem.replaceAll("###ids###", result.id), funct, item);
+		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", result.id), funct, item);
 	}
 }
 function loadScript(context) {
@@ -868,7 +895,7 @@ function loadScript(context) {
 		prepareCall("", json, 'loadQueries');
 		
 	}catch(e){
-		logError('loadScript', 'Excpetion', context, ln(), e);
+		logError('loadScript', 'Exception', context, ln(), e);
 	}
 }
 function loadCss(context) {
@@ -879,7 +906,7 @@ function loadCss(context) {
 		}
 		
 	}catch(e){
-		logError('loadScript', 'Excpetion', context, ln(), e);
+		logError('loadScript', 'Exception', context, ln(), e);
 	}
 }
 function getCss(context){	
@@ -892,12 +919,12 @@ function getCss(context){
 				}
 		}else{
 			if(result.fields['Custom.Text'] != undefined){
-				$('head').append("<style id='" + result.fields['System.Title'] + "' >" + result.fields['Custom.Text'] + "{" + stripHtml(result.fields['Custom.Data'].replaceAll("]]",";")) + "}</style>");
+				$('head').append("<style id='" + result.fields['System.Title'] + "' >" + result.fields['Custom.Text'] + "{" + stripHtml(result.fields['Custom.Data'].replaceAllEx("]]",";")) + "}</style>");
 			}
 		}
 		loadRelation(result.relations, result.fields['Custom.Text']);
 	}catch(e){
-		logError('getCss', 'Excpetion', context, ln(), e);
+		logError('getCss', 'Exception', context, ln(), e);
 	}
 }
 
@@ -905,10 +932,10 @@ function getScript(context) {
 	try{
 		var result = getResult(context);
 		var e = document.createElement('script');
-		e.text = stripScript(result.fields['Custom.Data'].replaceAll('###Text###', result.fields['Custom.Text']), result.fields['System.Title']);
+		e.text = stripScript(result.fields['Custom.Data'].replaceAllEx('###Text###', result.fields['Custom.Text']), result.fields['System.Title']);
 		document.body.appendChild(e);
 	}catch(e){
-		logError('getScript', 'Excpetion', context, ln(), e);
+		logError('getScript', 'Exception', context, ln(), e);
 	}
 }
 function prepareCall(id, json, item, wid){
@@ -1006,28 +1033,36 @@ function prepareCall(id, json, item, wid){
 		}	
 	}catch(e){
 		console.log(e);
-		logError('prepareCall', 'Excpetion', item, ln(), e);
+		logError('prepareCall', 'Exception', item, ln(), e);
 	}
 }
 
 var globalcss = null;
 var cssDone = false;
+function findTypes(value, item){
+	var res = [];
+	for(var i in value){
+		if(value[i].fields["Custom.Type"] == item) res.push(value[i]);		
+	}
+	return res;
+}
+var cssCount = 0;
 function getRelation(context){
 	var result = getResult(context);
 	console.log("getRelation");
 	
-	var css = result.value.filter(item => item.fields["Custom.Type"] == "Css");
-	var html = result.value.filter(item => item.fields["Custom.Type"] == "Html");
-	var relay = result.value.filter(item => item.fields["Custom.Type"] == "Relay");
-	var script = result.value.filter(item => item.fields["Custom.Type"] == "Script");
+	var css = findTypes(result.value, "Css");
+	var html = findTypes(result.value, "Html");
+	var relay = findTypes(result.value, "Relay");
+	var script = findTypes(result.value, "Script");
 	for(var i in relay){
 		if(relay[i].fields['Custom.Text'] != undefined && relay[i].fields['Custom.Text'] != ""){
 			var dest = relay[i].fields['Custom.Text'].split('/');
 			if(dest.length > 1){
-				get(url_org + "/" + dest[0] + '/' + path_workitem.replaceAll("#ids#", dest[1]), getGeneric, 'getGeneric' + dest[1]);
+				get(config.url_org + "/" + dest[0] + '/' + config.path_workitem.replace("#ids#", dest[1]), getGeneric, 'getGeneric' + dest[1]);
 			} 
 		}
-		get(url_proj + '/' + path_workitem.replaceAll("#ids#", relay[i].fields['System.Id'] ), getGeneric, 'getGeneric' + relay[i].fields['System.Id']);
+		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", relay[i].fields['System.Id'] ), getGeneric, 'getGeneric' + relay[i].fields['System.Id']);
 	}
 	console.log("cssCount: " + cssCount);
 	document.getElementById('main').style.display = 'block';
@@ -1039,18 +1074,18 @@ function getRelation(context){
 		}else if(cssCount == 4){
 			globalcss = globalcss.concat(css);
 			css = globalcss;
-			css = css.sort((a, b) => a.fields['Custom.Order'] > b.fields['Custom.Order'] ? 1 : -1);
+			//css = css.sort((a, b) => a.fields['Custom.Order'] > b.fields['Custom.Order'] ? 1 : -1);
 			
 			var scripts = ""
 			for(var i in css){
 				var title = css[i].fields['Custom.Text'] == "AuxData" ? css[i].fields['Custom.AuxData'] : css[i].fields['Custom.Text'];
-				var body = stripHtml(css[i].fields['Custom.Data'].replaceAll("]]",";"));
+				var body = stripHtml(css[i].fields['Custom.Data'].replaceAllEx("]]",";"));
 				if(css[i].fields['Custom.Text'].startsWith("@media")){
 					var bodyArr = body.split("###");
 					var contentArr = stripHtml(css[i].fields['Custom.AuxData']).split("###");
 					var res = "";
 					for(var j in bodyArr){
-						res += stripHtml(bodyArr[j]).replaceAll(";", ">") +  "{" + stripHtml(contentArr[j]) + "}";
+						res += stripHtml(bodyArr[j]).replaceAllEx(";", ">") +  "{" + stripHtml(contentArr[j]) + "}";
 					}
 					body = res;
 				}
@@ -1074,33 +1109,36 @@ function getRelation(context){
 	
 	for(var i in html){
 		console.log(html[i].fields['Custom.Text']);
-		//document.getElementById(html[i].fields['Custom.Text']).innerHTML = stripHtml(html[i].fields['Custom.Data']).replace('&nbsp', '').replaceAll("###Title###", html[i].fields['System.Title']).replaceAll("###Description###", html[i].fields['System.Description']);
-		get(url_proj + '/' + path_workitem.replaceAll("#ids#", html[i].fields['System.Id']), getGeneric, 'getGeneric' + html[i].fields['System.Id']);
+		//document.getElementById(html[i].fields['Custom.Text']).innerHTML = stripHtml(html[i].fields['Custom.Data']).replace('&nbsp', '').replaceAllEx("###Title###", html[i].fields['System.Title']).replaceAllEx("###Description###", html[i].fields['System.Description']);
+		get(config.url_proj + '/' + config.path_workitem.replaceAllEx("###ids###", html[i].fields['System.Id']), getGeneric, 'getGeneric' + html[i].fields['System.Id']);
 	}
 }
 function loadRelation(relations, ext){
 	if(relations.length > 0){
 	var ids = new Array();
-	var arr = relations.filter(item => item.rel == "System.LinkTypes.Hierarchy-Forward");
-	for(var i in arr){
-		ids.push(parseInt(arr[i].url.split('/').pop()));
+	for(var i in relations){
+		if(relations[i].rel == "System.LinkTypes.Hierarchy-Forward"){
+			ids.push(parseInt(relations[i].url.split('/').pop()));
+		}
 	}
-	
+	if(ids.length < 1) return;
 	if(ext == "BatchCss"){		
 		const chunkSize = 200;
 		cssDone = false;
 		var globalcss = null;
-		for (let i = 0; i < ids.length; i += chunkSize) {
+		for (var i = 0; i < ids.length; i += chunkSize) {
 			if(chunkSize < 200) cssDone = true;
 			const chunk = ids.slice(i, i + chunkSize);
 			if(chunk.length > 0){
 				var json = JSON.stringify({"ids":   chunk  ,  "fields": [ "System.Id",    "System.Title",    "Custom.Text",    "Custom.Data", "Custom.AuxData", "Custom.Type", "Custom.Order"  ]});	
-				post(url_org + "/Css/" + path_batch, json, getRelation, 'getRelation');
+				post(config.url_org + "/Css/" + config.path_batch, json, getRelation, 'getRelation');
 			}		
 		}	
 	}else{		
-		for(var i in arr){
-			get(arr[i].url, getGeneric, 'getGeneric' + ids[i]);
+		for(var i in relations){
+			if(relations[i].rel == "System.LinkTypes.Hierarchy-Forward"){
+				get(relations[i].url, getGeneric, 'getGeneric' + ids[i]);
+			}
 		}
 	}
 	}
