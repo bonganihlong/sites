@@ -42,7 +42,7 @@ function setConfigs(){
 		config.removecomment = [];
 		
 		config.postsource = ['getUpdatedWI', 'addWIs', 'uploadImage', 'processComment', 'loadComment'];
-		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken', 'addWIs'];
+		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken'];
 		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment'];
 		config.repo = "";
 		config.key = "";
@@ -725,7 +725,7 @@ function getLastDate(){
 			config.maxDate = config.maxDate.substring(0, 10);
 			log('onload', 'startlog', "Getting Updated Work Items", ln());
 			json = JSON.stringify({
-				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] > '" + config.maxDate + "'"
+				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate + "'"
 			});
 			prepareCall("", json, 'getUpdatedWI');
 		}
@@ -740,7 +740,7 @@ function addWIs(context){
 		if(getWI(updatedwi.id) != null){
 			updateWI(updatedwi);
 		}else{
-			addWI(result.value[i].id, updatedwi.date);
+			addWI(updatedwi);
 		}
 	}	
 }
@@ -749,18 +749,13 @@ function getWI(id){
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
-		var obj = null;
-		try{
-			obj = rTrans.get(id)
-		}catch(e){
-			logError('getWI', 'Exception', "Not found " + id, ln(), e);
-		}
+		var obj = rTrans.get(id);
 		return obj;
 	}	
 }
 
 function updateWI(obj){
-	var request = window.indexedDB.open(site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database", 1);
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
@@ -787,48 +782,14 @@ function createDB(){
         };
 		log('createDB', 'creatingstore', "Store created", ln());
 }
-function addWI(id, date) {
-    var request = window.indexedDB.open(config.site + "Database", 1);
-
-    var b = (function () {
-      var c = [];
-      return function () {
-        c.push({id: id, date: date});
-        return c;
-        }
-    })();
-
-    request.onerror = function(event) {
-        log('addWI', 'Exception', "Not found " + id, ln());;
-    };
-
-    var d = b();
-    d.forEach(function(rest) {
-        console.log("I: ", d);
-    });
-
-    request.onupgradeneeded = function(event) {
-        var db = event.target.result;
-        var oS = db.createObjectStore("workitems", { keyPath: "id" });
-			oS.createIndex('by_date', 'date');
-	        oS.createIndex("id", "id", { unique: true });
-    };
-
-    request.onsuccess = function(event) {
-        var db = event.target.result;
-        var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems"); 
-        d.forEach(function(item) {
-            rTrans.add(item);
-            });
-
-        rTrans.oncomplete = function () {
-            //console.log("CONGRATULATIONS.");
-            }
-    };
-
-    request.onupgradeneeded.onerror = function(event) {
-         log('addWI', 'Exception', "Could not upgrade ", ln());;
-    }
+function addWI(obj) {
+	var request = window.indexedDB.open(config.site + "Database", 1);
+	request.onsuccess = function(event) {
+		var db = event.target.result;
+		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
+		var prequest = rTrans.put(obj);
+		
+	}	
 }
 function getRelays(context){
 	var result = getResult(context);
@@ -998,9 +959,9 @@ function prepareCall(id, json, item, wid){
 								callBack = getRelay;
 								ispost = false;
 								break;
-				case 'addWIs': url = config.url_org + "/Css/" + config.path_batch; 
+				case 'addWIs': url = config.url_org + '/' + config.path_batch; 
 								callBack = addWIs;
-								ispost = false;
+								ispost = post;
 								break;
 				case 'getUpdatedWI': url = config.url_team + '/' + config.path_wiql; 
 								callBack = getUpdatedWI;
