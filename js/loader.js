@@ -43,7 +43,7 @@ function setConfigs(){
 		
 		config.postsource = ['getUpdatedWI', 'addWIs', 'uploadImage', 'processComment', 'loadComment'];
 		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken'];
-		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment'];
+		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment', 'uploadImage'];
 		config.repo = "";
 		config.key = "";
 		config.device = "";
@@ -75,8 +75,7 @@ function all(url, json, callBack, item, source, get) {
 		var startindex = url.indexOf('workitems/');
 		var endindex = url.indexOf('?');
 		storedItem = url.substring(startindex + 10, endindex);
-		var has = getWI(storedItem);
-		if(has != null) source = true;
+		
 	}
 	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
 	//config.bases[base] = item + url + key ;
@@ -96,7 +95,7 @@ function all(url, json, callBack, item, source, get) {
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
 				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + storedItem, ln());
-				handleCaller(str, base, callBack, item, source, get);
+				handleCaller(str, base, callBack, item, source);
 				if(storedItem != undefined && storedItem != config.maxId){
 					log('all', 'success', "Removing item: " + storedItem, ln());
 					removeWI(storedItem);
@@ -124,6 +123,13 @@ function all(url, json, callBack, item, source, get) {
 			if(!source){
 					log('all', 'Error2', "Getting source " + url + item, ln());
 					all(url, json, callBack, item, true, get);
+				}else{
+					if(str.status == 400 && item.includes('uploadImage')){
+						var i = 0;
+						json = JSON.parse(json);
+						json.commits[0].changes[0].changeType = 'edit';
+						all(url, JSON.stringify(json), callBack, item, source, get);
+					}
 				}
 			log('all', 'Error3', "Done." + item, ln());
 		},
@@ -167,7 +173,7 @@ function handleCaller(context, base, callBack, item, source, get){
 		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
 		callBack(context);		
 		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
-		if(searchIncludes(item, config.repoitems)){
+		if(!searchIncludes(item, config.repoitems)){
 			var json = JSON.stringify(context);
 			if(source){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
@@ -737,20 +743,27 @@ function addWIs(context){
 		var updatedwi = {};
 		updatedwi.id = result.value[i].fields["System.Id"];
 		updatedwi.date = result.value[i].fields["System.ChangedDate"];	
-		if(getWI(updatedwi.id) != null){
-			updateWI(updatedwi);
-		}else{
-			addWI(updatedwi);
-		}
+		getWI(updatedwi);
 	}	
 }
-function getWI(id){
+function getWI(obj, fetch){
 	var request = window.indexedDB.open(config.site + "Database", 1);
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
-		var obj = rTrans.get(id);
-		return obj;
+		var request = rTrans.get(obj.id);
+		
+        request.onsuccess = function(e) {
+			if(fetch){
+				get(config.url_org + '/' + config.path_workitem.replace("###ids###", obj.id), getGeneric, 'getGeneric' + obj.id, true);
+			}else{
+	            updateWI(obj);
+			}
+        };
+        
+        request.onerror = function(e) {
+                addWI(obj);
+        };
 	}	
 }
 
@@ -1020,7 +1033,7 @@ function getRelation(context){
 		if(relay[i].fields['Custom.Text'] != undefined && relay[i].fields['Custom.Text'] != ""){
 			var dest = relay[i].fields['Custom.Text'].split('/');
 			if(dest.length > 1){
-				get(config.url_org + "/" + dest[0] + '/' + config.path_workitem.replace("#ids#", dest[1]), getGeneric, 'getGeneric' + dest[1]);
+				get(config.url_org + "/" + dest[0] + '/' + config.path_workitem.replace("###ids###", dest[1]), getGeneric, 'getGeneric' + dest[1]);
 			} 
 		}
 		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", relay[i].fields['System.Id'] ), getGeneric, 'getGeneric' + relay[i].fields['System.Id']);
