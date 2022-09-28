@@ -42,7 +42,7 @@ function setConfigs(){
 		config.removecomment = [];
 		
 		config.postsource = ['getUpdatedWI', 'addWIs', 'uploadImage', 'processComment', 'loadComment'];
-		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken'];
+		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken', 'loadRepos'];
 		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment', 'uploadImage'];
 		config.repo = "";
 		config.key = "";
@@ -81,14 +81,16 @@ function all(url, json, callBack, item, source, get) {
 	//config.bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
 
-	if(base.includes('C2062078206') || base.includes('C579699869')){
+	if(base.includes('C1428784761') || base.includes('C579699869')){
 			var t = "";
 		}
-	
+	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
+	var method = get ? 'GET' : source ? 'POST' : 'GET';
+	var finalData = get ? null : source ? json : null;
 	$.ajax({
-		url: source ? url : config.fileserver + "images/" + base + ".js",
-		type : get ? 'GET' : source ? 'POST' : 'GET',
-		data: get ? null : source ? json : null,
+		url: destUrl,
+		type : method,
+		data: finalData,
 		async: true,
 		headers: { 'Item-Requested': item, 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
 		cache: true,
@@ -300,7 +302,7 @@ function repoImage(imageUrl, base64, name, type, repeat){
 		  ]
 		}
 	);
-	console.log(json);
+	//console.log(json);
 	if(objs.length > 0){
 		prepareCall(repo, json, 'uploadImage');
 	}
@@ -841,7 +843,7 @@ function getGeneric(context){
 					item = 'getCss';
 					break;
 				case 'Relay' : funct = getRelay;
-					item = 'getRelay';
+					item = 'getRelayEx';
 					break;
 				case 'Query' : funct = getItemValue;
 					item = 'getItemValue';
