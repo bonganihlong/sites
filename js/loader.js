@@ -95,6 +95,9 @@ function all(url, json, callBack, item, source, get) {
 			var t = "";
 		}
 			if(id > 0){
+				if(storedItem == 169){
+					var g = 0;
+				}
 				removeWI(storedItem);
 				allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, storedItem, base );
 			}else{
@@ -477,8 +480,8 @@ function loadConfig(context) {
 function loadConfigItems(context) {
 	var result = getResult(context);
 	var ids = '', sep = '';
-	for (var i in result.relations) {
-		ids += sep + '' + result.relations[i].url.split('/').pop();
+	for (var i in result.value) {
+		ids += sep + '' + result.value[i].id;
 		sep = ",";
 	}
 	prepareCall(ids, "", 'loadConfigValues');
@@ -946,7 +949,7 @@ function getGeneric(context){
 					break;
 		}
 
-		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", result.id), funct, item);
+		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", result.id), funct, item + result.id);
 	}
 }
 function loadScript(context) {
@@ -1021,7 +1024,7 @@ function prepareCall(id, json, item, wid){
 								callBack = processComment;
 								ispost = true;
 								break;
-				case 'loadConfigItems': url = config.url_proj + '/' + config.path_workitem; 
+				case 'loadConfigItems': url = config.url_proj + '/' + config.path_workitems; 
 								callBack = loadConfigItems;
 								ispost = false;
 								break;
