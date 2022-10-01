@@ -824,7 +824,7 @@ function getLastDate(){
 			  }
 			log('onload', 'startlog', "Getting Updated Work Items", ln());
 			json = JSON.stringify({
-				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate + "'"
+				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate.substring(0, 10) + "'"
 			});
 			prepareCall("", json, 'getUpdatedWI');
 		}
