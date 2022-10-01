@@ -20,12 +20,14 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
   
 	var url = request.url + "";
 	url = url.replace('#refresh#','');
+	var hasrefresh = false;
 	if(request.url.includes("#refresh#")){
-	var js = request.url.split('/').pop().replace("#refresh#", "");
+		hasrefresh = true;
+		var js = request.url.split('/').pop().replace("#refresh#", "");
 		url = url.replace('#/' + js, '');
 	  try{
 		  await caches.delete(url);
-		  await caches.delete("images/" + js + ".js");
+		  await caches.delete("images/" + js.replace('#', '') + ".js");
 	}catch(e){
 		  console.log(e);
 		console.log('Error cannot remove cache: ' + request.url.split('/').pop())
@@ -40,7 +42,7 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
   }
   if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit')){
 	  const responseFromCache = await caches.match(url);
-	  if (responseFromCache) {
+	  if (responseFromCache  && !hasrefresh) {
 	    return responseFromCache;
 	  }
   }
@@ -51,7 +53,7 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
     return responseFromNetwork;
   } catch (error) {
     responseFromCache = await caches.match(url);
-	  if (responseFromCache) {
+	  if (responseFromCache && !hasrefresh) {
 	    return responseFromCache;
 	  }
     return new Response('Network error happened', {
