@@ -1,6 +1,3 @@
-
-
-
 var config = {};		
 config.site = 'Sunglass';
 	
@@ -27,16 +24,15 @@ function setConfigs(){
 		config.path_commit = "_apis/git/repositories/###id###/commits?&$top=1&searchCriteria.refName=refs/heads/main&" + config.version;
 		config.path_push = "_apis/git/repositories/###id###/pushes?" + config.version;
 		config.path_token = "_apis/tokens/pats?api-version=7.1-preview.1";
-		config.path_comment = "_apis/wit/workItems/###id###/comments?" + config.version + '-preview.3';
-		config.path_getcomment = "_apis/wit/workItems/###wid###/comments/###id###?" + config.version  + '-preview.3';
+		config.path_comment = "_apis/wit/workitems/###id###/comments?" + config.version + '-preview.3';
+		config.path_getcomment = "_apis/wit/workitems/###wid###/comments/###id###?" + config.version  + '-preview.3';
 		config.user = localStorage.getItem(config.site + 'userId');
 		config.path_session = '_apis/Token/SessionTokens?' + config.version + "-preview";
 		config.team = 'FormFormTeam';
 		config.url_team = config.url_proj + '/' + config.team;
 		config.tokenDate = '';
 		
-		
-		config.addlog = ['onload', 'loadRepos', 'Exception'];
+		config.addlog = ['onload', 'loadRepos', 'Exception', 'all'];
 		config.removelog = ['context'];
 		config.addcomment = [];
 		config.removecomment = [];
@@ -71,22 +67,78 @@ function all(url, json, callBack, item, source, get) {
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get, ln());
 	if(source == null || source == undefined) source = false;
 	var storedItem;
-	if(!source && url.includes('workitems/')){
+	if(!source && ( url.includes('workitems/') || url.includes('workItems/'))){
 		var startindex = url.indexOf('workitems/');
+		if(startindex == -1) startindex = url.indexOf('workItems/');
 		var endindex = url.indexOf('?');
-		storedItem = url.substring(startindex + 10, endindex);
+		storedItem = url.substring(startindex + 10, endindex == -1 ? url.length : endindex);
 		
 	}
 	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
 	//config.bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
 
-	if(base.includes('C1428784761') || base.includes('C579699869')){
+	if(base.includes('C1447124756') || base.includes('C579699869')){
 			var t = "";
 		}
 	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
 	var method = get ? 'GET' : source ? 'POST' : 'GET';
 	var finalData = get ? null : source ? json : null;
+	
+	var request = window.indexedDB.open(config.site + "Database", 1);
+	request.onsuccess = function(event) {
+		var id = storedItem == undefined ? 0 : storedItem;
+		var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
+		
+		request.onsuccess = function(e) {
+			if(base.includes('C1447124756') || base.includes('C579699869')){
+			var t = "";
+		}
+			if(id > 0){
+				removeWI(storedItem);
+				allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, storedItem, base );
+			}else{
+				if(destUrl.includes('.js')){
+				   var request = new XMLHttpRequest();
+				    request.open('GET', destUrl, true);
+					request.setRequestHeader("Item-Requested", item);
+				    request.onload = function(e) {
+					  if (this.status == 200) {
+						  handleCaller(e.target.response, base, callBack, item, source);
+					  }else{
+						  allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+					  }
+					};
+				    request.send();
+				}else{
+					if(storedItem == config.maxId){
+						allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, storedItem, base );
+						
+					}else{
+						allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+					}
+				}
+			}
+			
+		};
+		
+		request.onerror = function(e) {
+			if(base.includes('C1447124756') || base.includes('C579699869')){
+			var t = "";
+		}
+			allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+	
+		};
+	}
+	
+		
+}
+
+function allRequest(url, json, callBack, item, source, get, destUrl, method, finalData, storedItem, base ){
+	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
+	var method = get ? 'GET' : source ? 'POST' : 'GET';
+	var finalData = get ? null : source ? json : null;
+	
 	$.ajax({
 		url: destUrl,
 		type : method,
@@ -135,9 +187,8 @@ function all(url, json, callBack, item, source, get) {
 				}
 			log('all', 'Error3', "Done." + item, ln());
 		},
-	});	
+	});
 }
-
 function search(nameKey, myArray){
     for (var i=0; i < myArray.length; i++) {
         if (myArray[i] === nameKey) {
@@ -179,12 +230,53 @@ function handleCaller(context, base, callBack, item, source, get){
 			var json = JSON.stringify(context);
 			if(source){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
-				repoImage("", json, base + ".js", 'rawtext');
+				var request = new XMLHttpRequest();
+			    request.open('GET', config.fileserver + "images/" + base + '.js', true);
+			    request.setRequestHeader("Item-Requested", item);
+				    
+			    request.onreadystatechange = function () {
+				    if (request.readyState === 4 && request.status === 200) {
+				        
+					}else{
+						//repoImage("", json, base + ".js", 'rawtext');
+					}
+			    }
+				request.send(null);
 				log('handleCaller', 'handleCaller', "Done repoImage " + item , ln());
 			}
 			log('handleCaller', 'handleCaller', "Finished repoImage " + item , ln());
 		}
 	}
+}
+
+function fileExists(url) {
+    if(url){
+        var req = new XMLHttpRequest();
+        req.open('GET', url, false);
+		req.setRequestHeader("Item-Requested", item);
+				    
+        req.send();
+        return req.status==200;
+    } else {
+        return false;
+    }
+}
+
+function getText(url){
+    // read text from URL location
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+	request.setRequestHeader("Item-Requested", item);
+				    
+    request.send(null);
+    request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.status === 200) {
+            var type = request.getResponseHeader('Content-Type');
+            if (type.indexOf("text") !== 1) {
+                return request.responseText;
+            }
+        }
+    }
 }
 
 function saveToken(){
@@ -418,10 +510,10 @@ function getObject(objs, mainindex, obj, item, index, str){
 	return null;
 }
 function loadRepos(context) {
-	log('loadRepos', 'loadinging repo', "Getting repos", ln());
+	log('loadRepos', 'loading repo', "Getting repos", ln());
 	var result = getResult(context);	
 	repo = getObject(result.value, 0, result.value[0], ["project", "name"], 0, "Sunglass").id;
-	log('loadRepos', 'loadinging repo', "RepoID:" + repo, ln());
+	log('loadRepos', 'loading repo', "RepoID:" + repo, ln());
 	fetchCommit();
 	if(config.repo != repo && repo != ""){
 		config.repo = repo;
@@ -697,10 +789,7 @@ function getRelaysWiql(context){
 		prepareCall(result.workItems[i].id, "", 'getRelayEx');
 	}
 }
-function getUpdatedWI(context){
-	var result = getResult(context);
-	var ids = [];
-	for (var i in result.workItems) {
+function getUpdatedWI(context){	var result = getResult(context);	var ids = [];	for (var i in result.workItems) {
 		ids.push(parseInt(result.workItems[i].id));
 	}
 	if(ids.length > 0){
@@ -730,7 +819,6 @@ function getLastDate(){
 					}
 				  config.maxId = "-1";
 			  }
-			config.maxDate = config.maxDate.substring(0, 10);
 			log('onload', 'startlog', "Getting Updated Work Items", ln());
 			json = JSON.stringify({
 				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate + "'"
@@ -744,8 +832,10 @@ function addWIs(context){
 	for (var i in result.value) {
 		var updatedwi = {};
 		updatedwi.id = result.value[i].fields["System.Id"];
-		updatedwi.date = result.value[i].fields["System.ChangedDate"];	
-		getWI(updatedwi);
+		updatedwi.date = result.value[i].fields["System.ChangedDate"];
+		if(Date.parse(updatedwi.date) > Date.parse(config.maxDate)){
+			getWI(updatedwi);
+		}
 	}	
 }
 function getWI(obj, fetch){
@@ -833,7 +923,7 @@ function loadCssFile(path){
 }
 function getGeneric(context){
 	var result = getResult(context);
-	if(result.fields['System.State'] == 'New' || result.fields['System.State'] == "Active"){
+	if(result.fields['System.State'] == "Active"){
 		var item, funct;
 		switch (result.fields['Custom.Type']) {
 				case 'Html': funct = getHtml;
@@ -843,7 +933,7 @@ function getGeneric(context){
 					item = 'getCss';
 					break;
 				case 'Relay' : funct = getRelay;
-					item = 'getRelayEx';
+					item = 'getRelay';
 					break;
 				case 'Query' : funct = getItemValue;
 					item = 'getItemValue';
@@ -855,6 +945,7 @@ function getGeneric(context){
 					item = 'loadImageItem';					
 					break;
 		}
+
 		get(config.url_proj + '/' + config.path_workitem.replace("###ids###", result.id), funct, item);
 	}
 }
