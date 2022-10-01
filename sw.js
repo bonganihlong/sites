@@ -2,11 +2,11 @@
 // helper methods
 //
 
-const putInCache = async (request, response) => {
+const putInCache = async (url, response) => {
 	if(response.status == 200){
   const cache = await caches.open('sunglasscache');
 	try{
-  await cache.put(request, response);
+	  await cache.put(url, response);
 	}catch(e){
 		//console.log('Error cannot cache: ' + request.url.split('/').pop())
 	
@@ -17,25 +17,40 @@ const putInCache = async (request, response) => {
 var noncached = [ "loader.js","sw.js", "commit", 'index.html'];
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
-  if(request.url.includes("tracking.js")){
+  
+	var url = request.url + "";
+	url = url.replace('#refresh#','');
+	if(request.url.includes("#refresh#")){
+	var js = request.url.split('/').pop().replace("#refresh#", "");
+		url = url.replace('#/' + js, '');
+	  try{
+		  await caches.delete(url);
+		  await caches.delete("images/" + js + ".js");
+	}catch(e){
+		  console.log(e);
+		console.log('Error cannot remove cache: ' + request.url.split('/').pop())
+	
+	}
+  }
+	if(url.includes("tracking.js")){
 	  return new Response('Network error happened', {
       status: 404,
       headers: { 'Content-Type': 'text/plain' },
     });
   }
   if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit')){
-  const responseFromCache = await caches.match(request);
-  if (responseFromCache) {
-    return responseFromCache;
-  }
+	  const responseFromCache = await caches.match(url);
+	  if (responseFromCache) {
+	    return responseFromCache;
+	  }
   }
   // Next try to get the resource from the network
   try {
     const responseFromNetwork = await fetch(request);
-    putInCache(request, responseFromNetwork.clone());
+    putInCache(url, responseFromNetwork.clone());
     return responseFromNetwork;
   } catch (error) {
-    responseFromCache = await caches.match(request);
+    responseFromCache = await caches.match(url);
 	  if (responseFromCache) {
 	    return responseFromCache;
 	  }
