@@ -38,7 +38,7 @@ function setConfigs(){
 		config.removecomment = [];
 		
 		config.postsource = ['getUpdatedWI', 'addWIs', 'uploadImage', 'processComment', 'loadComment'];
-		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken', 'loadRepos'];
+		config.getsource = ['loadCommit', 'processComment', 'loadComment', 'loadToken'];
 		config.repoitems = ['loadToken', 'loadCommit', 'getUpdatedWI', 'addWIs', 'processComment', 'loadComment', 'uploadImage'];
 		config.repo = "";
 		config.key = "";
@@ -78,7 +78,7 @@ function all(url, json, callBack, item, source, get) {
 	//config.bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + id, ln());
 
-	if(base.includes('C1447124756') || base.includes('C579699869')){
+	if(base.includes('1659114594') || base.includes('C579699869')){
 			var t = "";
 		}
 	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
@@ -260,14 +260,12 @@ function handleCaller(context, base, callBack, item, source, get){
 				var request = new XMLHttpRequest();
 			    request.open('GET', config.fileserver + "images/" + base + '.js', true);
 			    request.setRequestHeader("Item-Requested", item);
-				    
-			    request.onreadystatechange = function () {
-				    if (request.readyState === 4 && request.status === 200) {
-				        
-					}else{
-						repoImage("", json, base + ".js", 'rawtext');
-					}
-			    }
+				request.onload = function(e) {
+					  if (this.status != 200) {
+						  repoImage("", json, base + ".js", 'rawtext');
+					  }
+					};   
+			    
 				request.send(null);
 				log('handleCaller', 'handleCaller', "Done repoImage " + item , ln());
 			}
@@ -1095,7 +1093,7 @@ function prepareCall(id, json, item, wid){
 								callBack = getRelaysWiql;
 								ispost = true;
 								break;
-				case 'loadRepos': url = config.url_org + '/' + config.path_repo; 
+				case 'loadRepos': url = config.url_org + '/' + config.path_repo + '#/online#'; 
 								callBack = loadRepos;
 								ispost = false;
 								break;
