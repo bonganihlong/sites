@@ -32,7 +32,7 @@ function setConfigs(){
 		config.url_team = config.url_proj + '/' + config.team;
 		config.tokenDate = '';
 		
-		config.addlog = ['onload', 'loadRepos', 'Exception', 'all'];
+		config.addlog = ['onload', 'loadRepos', 'Exception'];
 		config.removelog = ['context'];
 		config.addcomment = [];
 		config.removecomment = [];
@@ -66,17 +66,17 @@ var idsArr = [];
 function all(url, json, callBack, item, source, get) {	
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get, ln());
 	if(source == null || source == undefined) source = false;
-	var storedItem;
+	var id;
 	if(!source && ( url.includes('workitems/') || url.includes('workItems/'))){
 		var startindex = url.indexOf('workitems/');
 		if(startindex == -1) startindex = url.indexOf('workItems/');
 		var endindex = url.indexOf('?');
-		storedItem = url.substring(startindex + 10, endindex == -1 ? url.length : endindex);
+		id = url.substring(startindex + 10, endindex == -1 ? url.length : endindex);
 		
 	}
 	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
 	//config.bases[base] = item + url + key ;
-	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + storedItem, ln());
+	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + id, ln());
 
 	if(base.includes('C1447124756') || base.includes('C579699869')){
 			var t = "";
@@ -87,7 +87,7 @@ function all(url, json, callBack, item, source, get) {
 	
 	var request = window.indexedDB.open(config.site + "Database", 1);
 	request.onsuccess = function(event) {
-		var id = storedItem == undefined ? 0 : storedItem;
+		 id = id == undefined ? 0 : id;
 		var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
 		
 		request.onsuccess = function(e) {
@@ -95,11 +95,28 @@ function all(url, json, callBack, item, source, get) {
 			var t = "";
 		}
 			if(id > 0){
-				if(storedItem == 169){
+				
+				if(id == 169){
 					var g = 0;
 				}
-				removeWI(storedItem);
-				allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, storedItem, base );
+				
+				var request = window.indexedDB.open(config.site + "Database", 1);
+				request.onsuccess = function(event) {
+					var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(Number(id));
+					
+			        request.onsuccess = function(e) {
+						if(e.target.result != undefined){
+							removeWI(id);
+							allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, id, base );
+						}else{
+							 allRequest(url, json, callBack, item, true, get, destUrl, method,finalData, id, base );
+					  }
+					};
+			        
+			        request.onerror = function(e) {
+			            allRequest(url, json, callBack, item, true, get, destUrl, method,finalData, id, base );
+					  };
+				}
 			}else{
 				if(destUrl.includes('.js')){
 				   var request = new XMLHttpRequest();
@@ -109,16 +126,16 @@ function all(url, json, callBack, item, source, get) {
 					  if (this.status == 200) {
 						  handleCaller(e.target.response, base, callBack, item, source);
 					  }else{
-						  allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+						  allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
 					  }
 					};
 				    request.send();
 				}else{
-					if(storedItem == config.maxId){
-						allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, storedItem, base );
+					if(id == config.maxId){
+						allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, id, base );
 						
 					}else{
-						allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+						allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
 					}
 				}
 			}
@@ -129,7 +146,7 @@ function all(url, json, callBack, item, source, get) {
 			if(base.includes('C1447124756') || base.includes('C579699869')){
 			var t = "";
 		}
-			allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, storedItem, base );
+			allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
 	
 		};
 	}
@@ -137,7 +154,7 @@ function all(url, json, callBack, item, source, get) {
 		
 }
 
-function allRequest(url, json, callBack, item, source, get, destUrl, method, finalData, storedItem, base ){
+function allRequest(url, json, callBack, item, source, get, destUrl, method, finalData, id, base ){
 	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
 	var method = get ? 'GET' : source ? 'POST' : 'GET';
 	var finalData = get ? null : source ? json : null;
@@ -151,15 +168,11 @@ function allRequest(url, json, callBack, item, source, get, destUrl, method, fin
 		cache: true,
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
-				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + storedItem, ln());
+				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + id, ln());
 				handleCaller(str, base, callBack, item, source);
-				if(storedItem != undefined && storedItem != config.maxId){
-					log('all', 'success', "Removing item: " + storedItem, ln());
-					removeWI(storedItem);
-					log('all', 'success', "Removed item: " + storedItem, ln());
-				}
+				
 			}else{
-				log('all', 'failure', "Not found " + item + source + storedItem, ln());
+				log('all', 'failure', "Not found " + item + source + id, ln());
 				if(!source){
 					log('all', 'failure', "Getting source " + item, ln());
 					all(url, json, callBack, item, true, get);
@@ -181,11 +194,22 @@ function allRequest(url, json, callBack, item, source, get, destUrl, method, fin
 					log('all', 'Error2', "Getting source " + url + item, ln());
 					all(url, json, callBack, item, true, get);
 				}else{
-					if(str.status == 400 && item.includes('uploadImage')){
-						var i = 0;
+					if(str.status == 400 && item.includes('uploadImage') && str.responseJSON.message.includes('specified in the add operation already exists')){
+						var index = str.responseJSON.message.indexOf('/images/');
+						var finalindex = str.responseJSON.message.indexOf('.js');
+						var filename = str.responseJSON.message.substring(index, finalindex - index + 13);
 						json = JSON.parse(json);
-						json.commits[0].changes[0].changeType = 'edit';
-						all(url, JSON.stringify(json), callBack, item, source, get);
+						var edited = false;
+						for(var i=json.commits[0].changes.length-1; i>=0; i--){
+							if(json.commits[0].changes[i].changeType == 'add' && json.commits[0].changes[i].item.path == filename){
+								json.commits[0].changes.splice(i, 1);
+								//json.commits[0].changes[i].changeType = 'edit';
+								edited = true;
+							}
+						}
+						if(edited && json.commits[0].changes.length > 0){
+							all(url, JSON.stringify(json), callBack, item, source, get);
+						}
 					}
 				}
 			log('all', 'Error3', "Done." + item, ln());
@@ -241,7 +265,7 @@ function handleCaller(context, base, callBack, item, source, get){
 				    if (request.readyState === 4 && request.status === 200) {
 				        
 					}else{
-						//repoImage("", json, base + ".js", 'rawtext');
+						repoImage("", json, base + ".js", 'rawtext');
 					}
 			    }
 				request.send(null);
@@ -344,7 +368,12 @@ function displayProtectedImage(imageId, imageUrl, authToken, name) {
 var objs  = [];
 function repoImage(imageUrl, base64, name, type, repeat){	
 	var filename = imageUrl.split('/').pop() + name;
-	if(filename != ""){	
+	var hasfile = false;
+	for(var i=0; i<objs.length; i++){
+		if(objs[i].filename == filename) hasfile = true;
+	}
+	if(filename != "" && !hasfile){	
+		
 		var obj = {};
 		obj.filename = filename;
 		obj.base64 = base64;
@@ -401,7 +430,7 @@ function repoImage(imageUrl, base64, name, type, repeat){
 	if(objs.length > 0){
 		prepareCall(repo, json, 'uploadImage');
 	}
-	objs = [];
+	if(objs.length > 5) objs = [];
 }
 
 
@@ -455,6 +484,8 @@ function getComment(context){
 function uploadImage(context) {
 	var result = getResult(context);
 	if(result.commits.length >0){
+		
+		objs.shift();
 		//commit = result.commits[0].commitId;
 	}
 }
@@ -531,14 +562,18 @@ function fetchCommit(){
 	commitTime = commitTime * 1.2;
 }
 var commit = "";
+var tries = 0;
 function loadCommit(context) {
 	var result = getResult(context);
 	if(result.value.length > 0){
 		var oldcommit = commit;
 		commit = result.value[0].commitId;
 		console.log('Commit ID: ' + commit);
-		if(oldcommit != commit){
+		if(oldcommit != commit || tries == 3){
 			repoImage("", "", "", "");
+			tries = 0;
+		}else{
+			tries = tries + 1;
 		}
 	}
 }
@@ -846,7 +881,7 @@ function getWI(obj, fetch){
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
-		var request = rTrans.get(obj.id);
+		var request = rTrans.get(Number(obj.id));
 		
         request.onsuccess = function(e) {
 			if(fetch){
@@ -875,7 +910,15 @@ function removeWI(id){
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
-		return rTrans.delete(id);
+		var request = rTrans.delete(Number(id));
+
+		request.onsuccess = function(e) {
+			var t = 0;
+        };
+        
+        request.onerror = function(e) {
+	         var t = 0;
+        };
 	}	
 }
 
