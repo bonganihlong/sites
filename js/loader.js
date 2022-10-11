@@ -78,7 +78,7 @@ function all(url, json, callBack, item, source, get) {
 	//config.bases[base] = item + url + key ;
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + id, ln());
 
-	if(base.includes('1659114594') || base.includes('C579699869')){
+	if(base.includes('350302300') || base.includes('C1938261616')){
 			var t = "";
 		}
 	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
@@ -91,12 +91,12 @@ function all(url, json, callBack, item, source, get) {
 		var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
 		
 		request.onsuccess = function(e) {
-			if(base.includes('C1447124756') || base.includes('C579699869')){
+			if(base.includes('350302300') || base.includes('C1938261616')){
 			var t = "";
 		}
 			if(id > 0){
 				
-				if(id == 169){
+				if(id == 16925){
 					var g = 0;
 				}
 				
@@ -131,7 +131,7 @@ function all(url, json, callBack, item, source, get) {
 					};
 				    request.send();
 				}else{
-					if(id == config.maxId){
+					if(id == config.maxId && !(url.includes('#refresh#')|| url.includes('#/online#'))){
 						allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, id, base );
 						
 					}else{
@@ -326,22 +326,22 @@ document.onkeyup = function () {
   }
 }
 
-function fetchWithAuthentication(url, authToken) {
+async function fetchWithAuthentication(url, authToken) {
 	const headers = new Headers();
 	headers.set('Authorization', authToken);
 	headers.set('Access-Control-Allow-Origin', '*');
 	headers.set('Accept-Encoding', 'gzip,deflate');
 	headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-	return fetch(url, {
+	return await fetch(url, {
 		headers
 	});
 }
 
-function displayProtectedImage(imageId, imageUrl, authToken, name) {
+async function displayProtectedImage(imageId, imageUrl, authToken, name) {
 	try {
-		const response = fetchWithAuthentication(imageUrl, authToken);
+		const response = await fetchWithAuthentication(imageUrl, authToken);
 		const blob = response.blob();		
-		const objectUrl = URL.createObjectURL(blob);		
+		const objectUrl = window.URL.createObjectURL(blob);		
 		const imageElement = document.getElementById(imageId);
 		imageElement.src = objectUrl;
 		
@@ -698,7 +698,7 @@ window.onload = function() {
 	prepareCall("", "", 'loadToken');
 	log('onload', 'startlog', "Getting First Entry", ln());
 	var json = JSON.stringify({
-		"query": "Select [System.Id], [System.Title], [System.Description], [Custom.Text] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [System.AssignedTo] = @me"
+		"query": "Select [System.Id], [System.Title], [System.Description], [Custom.Text] From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [Custom.Type] = 'Relay' AND [Custom.Order] = 0 AND [System.AssignedTo] = @me"
 	});
 	prepareCall("", json, 'getRelaysWiql');
 	log('onload', 'startlog', "Getting Device", ln());
@@ -706,7 +706,7 @@ window.onload = function() {
 	log('onload', 'endlog', "End loading for device:" + device, ln());	
 	
 				document.getElementById('main').style.display = 'block';
-				document.getElementById('loader_div').style.display = 'none';
+				//document.getElementById('loader_div').style.display = 'none';
 }
 //LogError
 function logError(funct, item, text, ln, e){
@@ -805,14 +805,14 @@ function getRelay(context){
 		if(text == "Batch"){
 			loadRelation(result.relations, text);
 		}else{
-			loadRelation(result.relations, text);
-			if(text != ""){
-				var dest = text.split('/');
-				if(dest.length > 1){
-					prepareCall(dest[1], "", 'getRelay');
+			if(result.relations != undefined){
+				loadRelation(result.relations, text);
+				if(text != ""){
+					var dest = text.split('/');
+					if(dest.length > 1){
+						prepareCall(dest[1], "", 'getRelay');
+					}
 				}
-			}else{
-				
 			}
 		}
 	}catch(e){
@@ -825,7 +825,10 @@ function getRelaysWiql(context){
 		prepareCall(result.workItems[i].id, "", 'getRelayEx');
 	}
 }
-function getUpdatedWI(context){	var result = getResult(context);	var ids = [];	for (var i in result.workItems) {
+function getUpdatedWI(context){	
+	var result = getResult(context);	
+	var ids = [];	
+	for (var i in result.workItems) {
 		ids.push(parseInt(result.workItems[i].id));
 	}
 	if(ids.length > 0){
@@ -1089,7 +1092,7 @@ function prepareCall(id, json, item, wid){
 								callBack = loadToken;
 								ispost = false;
 								break;
-				case 'getRelaysWiql': url = config.url_team + '/' + config.path_wiql; 
+				case 'getRelaysWiql': url = config.url_team + '/' + config.path_wiql + '#/online#'; 
 								callBack = getRelaysWiql;
 								ispost = true;
 								break;
@@ -1109,11 +1112,11 @@ function prepareCall(id, json, item, wid){
 								callBack = getRelay;
 								ispost = false;
 								break;
-				case 'addWIs': url = config.url_org + '/' + config.path_batch; 
+				case 'addWIs': url = config.url_org + '/' + config.path_batch + '#/online#'; 
 								callBack = addWIs;
 								ispost = post;
 								break;
-				case 'getUpdatedWI': url = config.url_team + '/' + config.path_wiql; 
+				case 'getUpdatedWI': url = config.url_team + '/' + config.path_wiql + '#/online#'; 
 								callBack = getUpdatedWI;
 								ispost = true;
 								break;
