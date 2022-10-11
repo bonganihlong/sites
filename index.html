@@ -27,9 +27,9 @@
   <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
-	   <!--
+	   
 	  <link href="iPortfolio/assets/vendor/aos/aos.css" rel="stylesheet">
-	  <link href="iPortfolio/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	 <!-- <link href="iPortfolio/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 	  <link href="iPortfolio/assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 	  <link href="iPortfolio/assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
 	  <link href="iPortfolio/assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
@@ -49,8 +49,10 @@
 		<meta name="apple-mobile-web-app-status-bar" content="#db4938" />
 		<meta name="theme-color" content="#db4938" />
 	   <link rel="manifest" href="/manifest.json">
-	  <script src="index.js?v=3.2.12" type="application/javascript"></script>
-	  <script src="js/loader.js?v=3.4.1"></script>
+	  <script src="index.js?v=3.5.30" type="application/javascript"></script>
+	  <script src="js/loader.js?v=3.5.45"></script>
+	   <script src="js/device.js"></script>
+	  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <style>
 		.loader img{
 			max-width: 100%;
@@ -88,7 +90,9 @@
    <div class="loader_bg" id="loader_div">
          <div class="loader"><img src="images/loading.gif" alt="#" id="loader"/></div>
       </div>
+	<i class="bi bi-list mobile-nav-toggle d-xl-none"></i>
 	<div id="header"></div>
+	<div id="herodiv"></div>
    <div id ="main" style="display: none;">
 	  <div id="menuTopDiv"> </div>
 	  
@@ -227,7 +231,7 @@
   </div>
 </div>
      
-      <script src="js/device.js"></script>
+      
       <script src="js/jquery.min.js"></script>
       <script src="js/popper.min.js"></script>
       <script src="js/bootstrap.bundle.min.js"></script>
@@ -237,7 +241,6 @@
       <script src="js/custom.js"></script>
       
 	  
-	  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 	  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
     <script src="js/lib/easing/easing.min.js"></script>
     <script src="js/lib/owlcarousel/owl.carousel.min.js"></script>
@@ -252,7 +255,7 @@
   <script src="iPortfolio/assets/vendor/typed.js/typed.min.js"></script>
   <script src="iPortfolio/assets/vendor/waypoints/noframework.waypoints.js"></script>
   <script src="iPortfolio/assets/vendor/php-email-form/validate.js"></script>
-
+<script src="iPortfolio/assets/js/main.js"></script>
 </div>	  
    </body>
 </html>
