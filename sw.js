@@ -29,7 +29,9 @@ const removeItemFromCache = async (name) => {
 var noncached = [ "loader.js","sw.js", "commit", 'index.html'];
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
-  
+  if(request.url.includes('#/online#')){
+	  var t=0;
+  }
 	var url = request.url + "";
 	url = url.replace('#refresh#','');
 	var hasrefresh = false;
@@ -74,6 +76,25 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
     });
   }
 };
+
+function customHeaderRequestFetch(request) {
+  // decide for yourself which values you provide to mode and credentials
+  var headers = [];
+	for (const pair of request.headers.entries()) {
+    headers[pair[0]] = pair[1];
+  }
+	const newRequest = new Request(request, {
+    headers: {
+      'OnlineMode': 'online',
+		"Item-Requested": headers["Item-Requested"],
+		"Authorization": headers["Authorization"],
+		"Content-Type": headers["Content-Type"],
+		"Access-Control-Allow-Origin": "*"
+		
+    }
+  })
+  return fetch(newRequest)
+}
 
 //install
 
