@@ -29,51 +29,38 @@ const removeItemFromCache = async (name) => {
 var noncached = [ "loader.js","sw.js", "commit", 'index.html'];
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
-  if(request.url.includes('#/online#')){
-	  var t=0;
-  }
-	var url = request.url + "";
-	url = url.replace('#refresh#','');
-	var hasrefresh = false;
-	if(request.url.includes("#refresh#")){
-		hasrefresh = true;
-		var js = request.url.split('/').pop().replace("#refresh#", "");
-		url = url.replace('#/' + js, '');
-	  try{
-		  await removeItemFromCache(url);
-		  await removeItemFromCache("images/" + js.replace('#', '') + ".js");
-	}catch(e){
-		  console.log(e);
-		console.log('Error cannot remove cache: ' + request.url.split('/').pop())
-	
-	}
-  }
-	if(url.includes("tracking.js")){
-	  return new Response('Network error happened', {
-      status: 404,
-      headers: { 'Content-Type': 'text/plain' },
-    });
-  }
-  if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit') && !request.url.includes('online')){
-	  const responseFromCache = await caches.match(url);
-	  if (responseFromCache  && !hasrefresh) {
-	    return responseFromCache;
-	  }
-  }
-  // Next try to get the resource from the network
+  var hasrefresh = false;
   try {
-    const responseFromNetwork = await fetch(request);
-    putInCache(url, responseFromNetwork.clone());
-    return responseFromNetwork;
-  } catch (error) {
-    responseFromCache = await caches.match(url.replace('#/online#', ''));
-	  if (responseFromCache && !hasrefresh) {
-	    return responseFromCache;
+		  var url = request.url + "";
+		var js = request.url.split('/').pop().replace("#refresh#", "");
+		if(request.url.includes('#refresh#')){
+			hasrefresh = true;
+			url = url.replace('#refresh#','');
+			const responseFromNetwork = await fetch(request);
+			url = url.replace('#/' + js, '');
+			await removeItemFromCache(url);
+			await removeItemFromCache("images/" + js.replace('#', '') + ".js");
+			putInCache(url, responseFromNetwork.clone());
+			putInCache("images/" + js.replace('#', '') + ".js", responseFromNetwork.clone());
+			return responseFromNetwork;
+		}
+	  if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit') && !request.url.includes('online')){
+		  const responseFromCache = await caches.match(url);
+		  if (responseFromCache  && !hasrefresh) {
+			return responseFromCache;
+		  }
 	  }
-    return new Response('Network error happened', {
-      status: 408,
-      headers: { 'Content-Type': 'text/plain' },
-    });
+	  const responseFromNetwork = await fetch(request);
+	  return responseFromNetwork;
+  } catch (error) {
+		  if(!hasrefresh){
+			  const responseFromCache = await caches.match(url);
+			  return responseFromCache;
+		  }
+		    return new Response('Network error happened', {
+		      status: 408,
+		      headers: { 'Content-Type': 'text/plain' },
+		    });
   }
 };
 
