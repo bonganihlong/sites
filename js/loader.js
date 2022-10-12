@@ -62,156 +62,125 @@ function saveConfig(){
 var index;
 var idsArr = [];
 
-
-function all(url, json, callBack, item, source, get) {	
-	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get, ln());
-	if(source == null || source == undefined) source = false;
-	var id;
-	if(!source && ( url.includes('workitems/') || url.includes('workItems/'))){
+function getId(url){
+	if(( url.includes('workitems/') || url.includes('workItems/'))){
 		var startindex = url.indexOf('workitems/');
 		if(startindex == -1) startindex = url.indexOf('workItems/');
 		var endindex = url.indexOf('?');
-		id = url.substring(startindex + 10, endindex == -1 ? url.length : endindex);
-		
+		return url.substring(startindex + 10, endindex == -1 ? url.length : endindex);
 	}
+}
+function all(url, json, callBack, item, online, get) {	
+	if(online.length == 0) return;
+	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + online[0] + get, ln());
+	var id = getId(url);
+	
 	var base = (btoa(item + url + key).hashCode() + "").replace("-","C");
-	//config.bases[base] = item + url + key ;
-	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + source + get + id, ln());
-
-	if(base.includes('350302300') || base.includes('C1938261616')){
-			var t = "";
-		}
-	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
-	var method = get ? 'GET' : source ? 'POST' : 'GET';
-	var finalData = get ? null : source ? json : null;
+	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + online[0] + get + id, ln());
+	
 	
 	var request = window.indexedDB.open(config.site + "Database", 1);
+	
 	request.onsuccess = function(event) {
-		 id = id == undefined ? 0 : id;
+		id = id == undefined ? 0 : id;
 		var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
 		
 		request.onsuccess = function(e) {
-			if(base.includes('350302300') || base.includes('C1938261616')){
-			var t = "";
-		}
 			if(id > 0){
-				
-				if(id == 16925){
-					var g = 0;
-				}
-				
 				var request = window.indexedDB.open(config.site + "Database", 1);
 				request.onsuccess = function(event) {
 					var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(Number(id));
-					
-			        request.onsuccess = function(e) {
+					request.onsuccess = function(e) {
 						if(e.target.result != undefined){
-							removeWI(id);
-							allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, id, base );
+							if(id != config.maxId){
+								removeWI(id);
+							}
+							allRequest(url, json, callBack, item, ['online'], get, base);
 						}else{
-							 allRequest(url, json, callBack, item, true, get, destUrl, method,finalData, id, base );
-					  }
-					};
+								allRequest(url, json, callBack, item, online, get, base);
+						}
+					}
 			        
 			        request.onerror = function(e) {
-			            allRequest(url, json, callBack, item, true, get, destUrl, method,finalData, id, base );
-					  };
-				}
-			}else{
-				if(destUrl.includes('.js')){
-				   var request = new XMLHttpRequest();
-				    request.open('GET', destUrl, true);
-					request.setRequestHeader("Item-Requested", item);
-				    request.onload = function(e) {
-					  if (this.status == 200) {
-						  handleCaller(e.target.response, base, callBack, item, source);
-					  }else{
-						  allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
-					  }
-					};
-				    request.send();
-				}else{
-					if(id == config.maxId && !(url.includes('#refresh#')|| url.includes('#/online#'))){
-						allRequest(url + '#/' + base + '##refresh#', json, callBack, item, true, get, destUrl, method,finalData, id, base );
-						
-					}else{
-						allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
+							allRequest(url, json, callBack, item, online, get, base);
 					}
 				}
+			}else{
+				allRequest(url, json, callBack, item, online, get, base);
 			}
 			
 		};
 		
 		request.onerror = function(e) {
-			if(base.includes('C1447124756') || base.includes('C579699869')){
-			var t = "";
-		}
-			allRequest(url, json, callBack, item, source, get, destUrl, method,finalData, id, base );
-	
+			allRequest(url, json, callBack, item, online, get, base);
 		};
 	}
 	
 		
 }
 
-function allRequest(url, json, callBack, item, source, get, destUrl, method, finalData, id, base ){
-	var destUrl = source ? url : config.fileserver + "images/" + base + ".js";
-	var method = get ? 'GET' : source ? 'POST' : 'GET';
-	var finalData = get ? null : source ? json : null;
+function allRequest(url, json, callBack, item, online, get, base ){
+	var destUrl = url;
+	switch (online[0]) {
+		case 'online': destUrl = url + '#/' + base + '##refresh#';
+			break;
+		case 'onlinecache': destUrl = url;
+			break;
+		case 'site':  destUrl = config.fileserver + "images/" + base + ".js" + '#online#';
+			break;
+		case 'sitecache': destUrl = config.fileserver + "images/" + base + ".js";
+			break;
+	}
+	
+	var method = get ? 'GET' : online[0].includes('online') ? 'POST' : 'GET';
+	var finalData = method == 'GET' ? null : json;
+	
 	
 	$.ajax({
 		url: destUrl,
 		type : method,
 		data: finalData,
 		async: true,
-		headers: { 'Item-Requested': item, 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
+		headers: { 'MainUrl': url, 'CacheUrl': base + ".js", 'Online': online[0], 'Item-Requested': item, 'Authorization': 'Basic ' + key,  'Access-Control-Allow-Origin': '*', 'Content-Type' : 'application/json'},
 		cache: true,
 		success: function (str,sta,xhr) {
 			if(xhr.status == 200){
-				log('all', 'success', "Calling handler: " + item + url + "--" + base + source + get + id, ln());
-				handleCaller(str, base, callBack, item, source);
+				log('all', 'success', "Calling handler: " + item + url + "--" + base + online[0] + get, ln());
+				handleCaller(str, base, callBack, item, online[0]);
 				
 			}else{
-				log('all', 'failure', "Not found " + item + source + id, ln());
-				if(!source){
-					log('all', 'failure', "Getting source " + item, ln());
-					all(url, json, callBack, item, true, get);
+					online.shift();
+					all(url, json, callBack, item, online, get);
 				}
-					log('all', 'failure', "Done." + item, ln());
-			}
 		},
 		failure: function (str,sta,xhr) {
 			log('all', 'onfailure', "Not found " + url + item, ln());
-			if(!source){
-					log('all', 'onfailure', "Getting source " + url + item, ln());
-					all(url, json, callBack, item, true, get);
-				}
-			log('all', 'onfailure', "Done." + item, ln());
+			online.shift();
+			all(url, json, callBack, item, online, get);
 		},
 		error: function (str,sta,xhr) {
 			log('all', 'Error1', "Not found " + url + item, ln());
-			if(!source){
-					log('all', 'Error2', "Getting source " + url + item, ln());
-					all(url, json, callBack, item, true, get);
-				}else{
-					if(str.status == 400 && item.includes('uploadImage') && str.responseJSON.message.includes('specified in the add operation already exists')){
-						var index = str.responseJSON.message.indexOf('/images/');
-						var finalindex = str.responseJSON.message.indexOf('.js');
-						var filename = str.responseJSON.message.substring(index, finalindex - index + 13);
-						json = JSON.parse(json);
-						var edited = false;
-						for(var i=json.commits[0].changes.length-1; i>=0; i--){
-							if(json.commits[0].changes[i].changeType == 'add' && json.commits[0].changes[i].item.path == filename){
-								json.commits[0].changes.splice(i, 1);
-								//json.commits[0].changes[i].changeType = 'edit';
-								edited = true;
-							}
-						}
-						if(edited && json.commits[0].changes.length > 0){
-							all(url, JSON.stringify(json), callBack, item, source, get);
-						}
+			if(str.status == 408 || str.status == 404){
+				online.shift();
+				all(url, json, callBack, item, online, get);
+			} 
+			if(str.status == 400 && item.includes('uploadImage') && str.responseJSON.message.includes('specified in the add operation already exists')){
+				var index = str.responseJSON.message.indexOf('/images/');
+				var finalindex = str.responseJSON.message.indexOf('.js');
+				var filename = str.responseJSON.message.substring(index, finalindex - index + 13);
+				json = JSON.parse(json);
+				var edited = false;
+				for(var i=json.commits[0].changes.length-1; i>=0; i--){
+					if(json.commits[0].changes[i].changeType == 'add' && json.commits[0].changes[i].item.path == filename){
+						json.commits[0].changes.splice(i, 1);
+						json.commits[0].changes[i].changeType = 'edit';
+						edited = true;
 					}
 				}
+				if(edited && json.commits[0].changes.length > 0){
+					all(url, JSON.stringify(json), callBack, item, ['online'], get);
+				}
+			}
 			log('all', 'Error3', "Done." + item, ln());
 		},
 	});
@@ -235,19 +204,15 @@ function searchIncludes(nameKey, myArray){
 }
 
 
-function post(url, json, callBack, item, source){
-	if(source == null || source == undefined) source = false;
-	if(searchIncludes(item, config.postsource)) source = true;
-	all(url, json, callBack, item, source, false)
+function post(url, json, callBack, item){
+	all(url, json, callBack, item, ['online'], false);
 }
 
-function get(url, callBack, item, source){
-	if(source == null || source == undefined) source = false;
-	if(searchIncludes(item, config.getsource)) source = true;
-	all(url, null, callBack, item, source, true)
+function get(url, callBack, item, online){
+	all(url, null, callBack, item, online == undefined || online == null ? ['sitecache', 'onlinecache', 'site', 'online'] : online, true);
 }
 
-function handleCaller(context, base, callBack, item, source, get){	
+function handleCaller(context, base, callBack, item, online, get){	
 	log('handleCaller', 'context', item + context , ln());
 	if(context != "" && context != null && context != undefined){
 		log('handleCaller', 'handleCaller', "Starting Callback" + item , ln());
@@ -255,7 +220,7 @@ function handleCaller(context, base, callBack, item, source, get){
 		log('handleCaller', 'handleCaller', "Starting to repo " + item , ln());
 		if(!searchIncludes(item, config.repoitems)){
 			var json = JSON.stringify(context);
-			if(source){	
+			if(online == 'online'){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
 				var request = new XMLHttpRequest();
 			    request.open('GET', config.fileserver + "images/" + base + '.js', true);
@@ -1053,7 +1018,7 @@ function getScript(context) {
 	}
 }
 function prepareCall(id, json, item, wid){
-	var url, callBack, ispost;
+	var url, callBack, ispost, online = [];
 	try{
 		switch (item) {
 				case 'getToken': url = config.url_proj + '/' + config.path_comment; 
@@ -1092,13 +1057,14 @@ function prepareCall(id, json, item, wid){
 								callBack = loadToken;
 								ispost = false;
 								break;
-				case 'getRelaysWiql': url = config.url_team + '/' + config.path_wiql + '#/online#'; 
+				case 'getRelaysWiql': url = config.url_team + '/' + config.path_wiql; 
 								callBack = getRelaysWiql;
 								ispost = true;
 								break;
-				case 'loadRepos': url = config.url_org + '/' + config.path_repo + '#/online#'; 
+				case 'loadRepos': url = config.url_org + '/' + config.path_repo; 
 								callBack = loadRepos;
 								ispost = false;
+								online = ['online', 'sitecache', 'site', 'onlinecache'];
 								break;
 				case 'getHtml': url = config.url_proj + '/' + config.path_workitem; 
 								callBack = getHtml;
@@ -1139,11 +1105,14 @@ function prepareCall(id, json, item, wid){
 								break;
 
 		}
+		if(online.length == 0){
+			online = ['sitecache', 'onlinecache', 'site', 'online'];
+		}
 		var idreplacer = url.includes('###ids###') ? '###ids###' : '###id###';
 		if(ispost){
 			post(url.replace(idreplacer, id), json, callBack, item + id);
 		}else{
-			get(url.replace('###wid###', wid).replace(idreplacer, id), callBack, item + id);
+			get(url.replace('###wid###', wid).replace(idreplacer, id), callBack, item + id, online);
 		}	
 	}catch(e){
 		console.log(e);
