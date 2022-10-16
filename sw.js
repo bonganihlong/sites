@@ -16,7 +16,7 @@ const putInCache = async (url, response) => {
 
 const removeItemFromCache = async (name) => {
   for (const entry of await caches.keys()) {
-	  if(!name.includes('.js')){
+	  if(!name.includes('.js') && name.includes('http')){
 		  name = new URL(name);
 		  name = name.href.replace(name.origin, '');
 	  }
