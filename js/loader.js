@@ -132,7 +132,7 @@ function allRequest(url, json, callBack, item, online, get, base ){
 			break;
 		case 'onlinecache': destUrl = url;
 			break;
-		case 'site':  destUrl = config.fileserver + "images/" + base + ".js" + '#online#';
+		case 'site':  destUrl = config.fileserver + "images/" + base + ".js" + '#refresh#';
 			break;
 		case 'sitecache': destUrl = config.fileserver + "images/" + base + ".js";
 			break;
@@ -1135,13 +1135,15 @@ function prepareCall(id, json, item, wid){
 								callBack = getRelay;
 								ispost = false;
 								break;
-				case 'addWIs': url = config.url_org + '/' + config.path_batch + '#/online#'; 
+				case 'addWIs': url = config.url_org + '/' + config.path_batch; 
 								callBack = addWIs;
 								ispost = post;
+								online = ['online', 'sitecache', 'site', 'onlinecache'];
 								break;
-				case 'getUpdatedWI': url = config.url_team + '/' + config.path_wiql + '#/online#'; 
+				case 'getUpdatedWI': url = config.url_team + '/' + config.path_wiql; 
 								callBack = getUpdatedWI;
 								ispost = true;
+								online = ['online', 'sitecache', 'site', 'onlinecache'];
 								break;
 				case 'loadQueries': url = config.url_team + '/' + config.path_wiql; 
 								callBack = loadQueries;
