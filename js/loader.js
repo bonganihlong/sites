@@ -1,5 +1,5 @@
 var config = {};		
-config.site = 'Sunglass';
+config.site = 'BusiSomething';
 	
 function setConfigs(){
 	var t = localStorage.getItem(config.site + 'configs');
@@ -13,6 +13,7 @@ function setConfigs(){
 		config.project = 'FormForm';
 		config.projectCSS = 'CSS';
 		config.url_org = config.base + "/" + config.org;
+		config.repo_proj = "Sunglass";
 		config.url_proj = config.url_org + "/" + config.project;
 		config.url_projCSS = config.url_org + "/" + config.projectCSS;
 		config.version = 'api-version=6.0';
@@ -79,41 +80,46 @@ function all(url, json, callBack, item, online, get) {
 	log('all', 'allstart', "Getting from post: " + item + url + "--" + base + online[0] + get + id, ln());
 	
 	
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	
 	request.onsuccess = function(event) {
-		id = id == undefined ? 0 : id;
-		var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
-		
-		request.onsuccess = function(e) {
-			if(id > 0){
-				var request = window.indexedDB.open(config.site + "Database", 1);
-				request.onsuccess = function(event) {
-					var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(Number(id));
-					request.onsuccess = function(e) {
-						if(e.target.result != undefined){
-							if(id != config.maxId){
-								removeWI(id);
+		try {
+			id = id == undefined ? 0 : id;
+			var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(id);
+			
+			request.onsuccess = function(e) {
+				if(id > 0){
+					var request = window.indexedDB.open(config.site + "Database");
+					request.onsuccess = function(event) {
+						var request = event.target.result.transaction("workitems", "readwrite").objectStore("workitems").get(Number(id));
+						request.onsuccess = function(e) {
+							if(e.target.result != undefined){
+								if(id != config.maxId){
+									removeWI(id);
+								}
+								allRequest(url, json, callBack, item, ['online'], get, base);
+							}else{
+									allRequest(url, json, callBack, item, online, get, base);
 							}
-							allRequest(url, json, callBack, item, ['online'], get, base);
-						}else{
+						}
+				        
+				        request.onerror = function(e) {
 								allRequest(url, json, callBack, item, online, get, base);
 						}
 					}
-			        
-			        request.onerror = function(e) {
-							allRequest(url, json, callBack, item, online, get, base);
-					}
+				}else{
+					allRequest(url, json, callBack, item, online, get, base);
 				}
-			}else{
-				allRequest(url, json, callBack, item, online, get, base);
-			}
+				
+			};
 			
-		};
-		
-		request.onerror = function(e) {
-			allRequest(url, json, callBack, item, online, get, base);
-		};
+			request.onerror = function(e) {
+				allRequest(url, json, callBack, item, online, get, base);
+			};
+			
+		} catch (error) {
+			//allRequest(url, json, callBack, item, online, get, base);
+		}
 	}
 	
 		
@@ -173,7 +179,7 @@ function allRequest(url, json, callBack, item, online, get, base ){
 				for(var i=json.commits[0].changes.length-1; i>=0; i--){
 					if(json.commits[0].changes[i].changeType == 'add' && json.commits[0].changes[i].item.path == filename){
 						json.commits[0].changes.splice(i, 1);
-						json.commits[0].changes[i].changeType = 'edit';
+						//json.commits[0].changes[i].changeType = 'edit';
 						edited = true;
 					}
 				}
@@ -222,16 +228,9 @@ function handleCaller(context, base, callBack, item, online, get){
 			var json = JSON.stringify(context);
 			if(online == 'online'){	
 				log('handleCaller', 'handleCaller', "Calling repoImage " + item , ln());
-				var request = new XMLHttpRequest();
-			    request.open('GET', config.fileserver + "images/" + base + '.js', true);
-			    request.setRequestHeader("Item-Requested", item);
-				request.onload = function(e) {
-					  if (this.status != 200) {
-						  repoImage("", json, base + ".js", 'rawtext');
-					  }
-					};   
-			    
-				request.send(null);
+				
+				repoImage("", json, base + ".js", 'rawtext');
+					  
 				log('handleCaller', 'handleCaller', "Done repoImage " + item , ln());
 			}
 			log('handleCaller', 'handleCaller', "Finished repoImage " + item , ln());
@@ -636,22 +635,37 @@ function stripScript(html, item) {
 
 function loadToken(context) {
 	var result = getResult(context);
-	var validTo = getObject(result.value, 0, result.value[0], ["displayName"], 0, config.site + 'Token').validTo;
+	var validTo = getObject(result.value, 0, result.value[0], ["displayName"], 0, config.site + config.user).validTo;
 	
 	document.getElementById('tokenDateId').innerHTML = 'Valid until ' +  formatDate((new Date()).toString('YY MM DD'));
 	document.getElementById("newTokenBtn").disabled = false;
 }
+
+function unMaskToken(token){
+	var masklength = 6;
+	var mask = token.substring(0, masklength);
+	token = token.substring(masklength);
+	var res = "";
+	for(var i = 0; i< masklength; i++){
+		var index = token.indexOf(mask[i]);
+		res += token.substring(0, index);
+		token = token.substring(index + 1);
+	}
+	return res + token;
+}
+
 window.onload = function() {	
 	setConfigs();
 	repo = config.repo;
 	document.title = config.site;
-	//alert(localStorage.getItem(site + "token"));
-	var storedkey = localStorage.getItem(config.site + "token");
+	
+	var storedkey = unMaskToken(localStorage.getItem(config.site + "token"));
+	//alert(storedkey);
 	if(storedkey == null){
 		$('#accessModal').modal('show');
 		return;
 	}
-	key = btoa(":" + localStorage.getItem(config.site + "token"));
+	key = btoa(":" + unMaskToken(localStorage.getItem(config.site + "token")));
 	//alert(key);	
 	log('onload', 'startlog', "Getting Repo", ln());
 	prepareCall("", json, 'loadRepos');
@@ -801,32 +815,40 @@ function getUpdatedWI(context){
 		prepareCall("", json, 'addWIs');
 	}	
 }
-
+var installDate = '2022-09-07';
 function getLastDate(){
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onsuccess = function(event) {
-		var db = event.target.result;
-		var store = db.transaction("workitems", "readwrite").objectStore("workitems");
-		var index = store.index('by_date');
-		var request = index.openCursor(/*query*/null, /*direction*/'prev');
-		request.onsuccess = function() {
-			  var cursor = request.result;
-			  if (cursor) {
-				config.maxDate = cursor.key;
-				  config.maxId = cursor.value.id;
-			  } else {
-				  if(config.maxDate == ""){
-						config.maxDate = getCurentDate().substring(0, 10);
-					}
-					if(config.maxDate == ""){
-						config.maxDate = '2022-09-07';
-					}
-				  config.maxId = "-1";
-			  }
-			log('onload', 'startlog', "Getting Updated Work Items", ln());
-			json = JSON.stringify({
-				"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate.substring(0, 10) + "'"
-			});
+		try{
+			var db = event.target.result;
+			var store = db.transaction("workitems", "readwrite").objectStore("workitems");
+			var index = store.index('by_date');
+			var request = index.openCursor(/*query*/null, /*direction*/'prev');
+			request.onsuccess = function() {
+				  var cursor = request.result;
+				  if (cursor) {
+					config.maxDate = cursor.key;
+					  config.maxId = cursor.value.id;
+				  } else {
+					  if(config.maxDate == ""){
+							config.maxDate = getCurentDate().substring(0, 10);
+						}
+						if(config.maxDate == ""){
+							config.maxDate = installDate;
+						}
+					  config.maxId = "-1";
+				  }
+				log('onload', 'startlog', "Getting Updated Work Items", ln());
+				var json = JSON.stringify({
+					"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate.substring(0, 10) + "'"
+				});
+				prepareCall("", json, 'getUpdatedWI');
+			}
+		}catch(e){
+			config.maxDate = installDate;
+			var json = JSON.stringify({
+					"query": "Select [System.Id]From WorkItems Where [State] <> 'Closed' AND [State] <> 'Removed' AND [System.WorkItemType] = 'Feature' AND [System.ChangedDate] >= '" + config.maxDate.substring(0, 10) + "'"
+				});
 			prepareCall("", json, 'getUpdatedWI');
 		}
 	}		
@@ -843,7 +865,7 @@ function addWIs(context){
 	}	
 }
 function getWI(obj, fetch){
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
@@ -864,7 +886,7 @@ function getWI(obj, fetch){
 }
 
 function updateWI(obj){
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
@@ -872,7 +894,7 @@ function updateWI(obj){
 	}	
 }
 function removeWI(id){
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
@@ -888,8 +910,33 @@ function removeWI(id){
 	}	
 }
 
+function CreateObjectStore(dbName, storeName) {
+    var request = indexedDB.open(dbName);
+    request.onsuccess = function (e){
+        var database = e.target.result;
+        var version =  parseInt(database.version);
+        database.close();
+        var secondRequest = indexedDB.open(dbName, version + 1);
+        secondRequest.onupgradeneeded = function (e) {
+			try{
+	            var database = e.target.result;
+	            var objectStore = database.createObjectStore(storeName, {
+	                keyPath: 'id'
+	            });
+				objectStore.createIndex('by_date', 'date');
+		        objectStore.createIndex("id", "id", { unique: true });
+			}catch(e){
+				
+			}
+        };
+        secondRequest.onsuccess = function (e) {
+            e.target.result.close();
+        }
+    }
+}
+
 function createDB(){
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onupgradeneeded = function(event) {
 		log('createDB', 'creatingstore', "Starting to create store", ln());
         var db = event.target.result;
@@ -897,10 +944,16 @@ function createDB(){
 			oS.createIndex('by_date', 'date');
 	        oS.createIndex("id", "id", { unique: true });
         };
-		log('createDB', 'creatingstore', "Store created", ln());
+	request.onerror = (event) => {
+	    console.error(`Database error: ${event.target.errorCode}`);
+	};
+	request.onsuccess = (event) => {
+		CreateObjectStore(config.site + "Database", "workitems");
+    };
+	log('createDB', 'creatingstore', "Store created", ln());
 }
 function addWI(obj) {
-	var request = window.indexedDB.open(config.site + "Database", 1);
+	var request = window.indexedDB.open(config.site + "Database");
 	request.onsuccess = function(event) {
 		var db = event.target.result;
 		var rTrans = db.transaction("workitems", "readwrite").objectStore("workitems");
@@ -999,6 +1052,9 @@ function getCss(context){
 		}else{
 			if(result.fields['Custom.Text'] != undefined){
 				$('head').append("<style id='" + result.fields['System.Title'] + "' >" + result.fields['Custom.Text'] + "{" + stripHtml(result.fields['Custom.Data'].replaceAllEx("]]",";")) + "}</style>");
+			}else{
+				$('head').append("<style id='" + result.fields['System.Title'] + "' >" + stripHtml(result.fields['Custom.Data']) + "</style>");
+				
 			}
 		}
 		loadRelation(result.relations, result.fields['Custom.Text']);
@@ -1041,7 +1097,7 @@ function prepareCall(id, json, item, wid){
 								callBack = loadConfigValues;
 								ispost = false;
 								break;
-				case 'loadCommit': url = config.url_org + '/' + config.site + '/' + config.path_commit; 
+				case 'loadCommit': url = config.url_org + '/' + config.repo_proj + '/' + config.path_commit; 
 								callBack = loadCommit;
 								ispost = false;
 								break;
@@ -1056,6 +1112,7 @@ function prepareCall(id, json, item, wid){
 				case 'loadToken': url = config.vs + '/' + config.path_session;
 								callBack = loadToken;
 								ispost = false;
+								online = ['online', 'sitecache', 'site', 'onlinecache'];
 								break;
 				case 'getRelaysWiql': url = config.url_team + '/' + config.path_wiql; 
 								callBack = getRelaysWiql;
