@@ -10,7 +10,7 @@ function setConfigs(){
 		config.vs = 'https://vssps.dev.azure.com/kukhanya';
 		config.fileserver = "";
 		config.org = 'kukhanya';
-		config.project = 'FormacForm';
+		config.project = 'FormForm';
 		config.projectCSS = 'CSS';
 		config.url_org = config.base + "/" + config.org;
 		config.repo_proj = "Sunglass";
