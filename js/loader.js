@@ -10,7 +10,7 @@ function setConfigs(){
 		config.vs = 'https://vssps.dev.azure.com/kukhanya';
 		config.fileserver = "";
 		config.org = 'kukhanya';
-		config.project = 'FormForm';
+		config.project = 'FormacForm';
 		config.projectCSS = 'CSS';
 		config.url_org = config.base + "/" + config.org;
 		config.repo_proj = "Sunglass";
@@ -642,6 +642,7 @@ function loadToken(context) {
 }
 
 function unMaskToken(token){
+	if(token == null) return token;
 	var masklength = 6;
 	var mask = token.substring(0, masklength);
 	token = token.substring(masklength);
@@ -1100,6 +1101,7 @@ function prepareCall(id, json, item, wid){
 				case 'loadCommit': url = config.url_org + '/' + config.repo_proj + '/' + config.path_commit; 
 								callBack = loadCommit;
 								ispost = false;
+								online = ['online'];
 								break;
 				case 'getItemValue': url = config.url_proj + '/' + config.path_workitem; 
 								callBack = getItemValue;
