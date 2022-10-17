@@ -31,7 +31,7 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
   var hasrefresh = false;
   try {
-		  var url = request.url + "";
+		var url = request.url + "";
 		var js = request.url.split('/').pop().replace("#refresh#", "");
 		if(request.url.includes('#refresh#')){
 			hasrefresh = true;
@@ -51,7 +51,9 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
 		  }
 	  }
 	  const responseFromNetwork = await fetch(request);
-	  return responseFromNetwork;
+	  
+	putInCache(url, responseFromNetwork.clone());
+	return responseFromNetwork;
   } catch (error) {
 		  if(!hasrefresh){
 			  const responseFromCache = await caches.match(url);
