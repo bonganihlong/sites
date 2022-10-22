@@ -27,10 +27,12 @@ const removeItemFromCache = async (name) => {
 };
 
 var noncached = [ "loader.js","sw.js", "commit", 'index.html'];
+var hasMaxItem = false;
 const cacheAndRespond = async ({ request, fallbackUrl }) => {
   // First try to get the resource from the cache
   var hasrefresh = false;
   try {
+		  
 		var url = request.url + "";
 		var js = request.url.split('/').pop().replace("#refresh#", "");
 		if(request.url.includes('#refresh#')){
@@ -42,21 +44,46 @@ const cacheAndRespond = async ({ request, fallbackUrl }) => {
 			await removeItemFromCache("images/" + js.replace('#', '') + ".js");
 			putInCache(url, responseFromNetwork.clone());
 			putInCache("images/" + js.replace('#', '') + ".js", responseFromNetwork.clone());
+			if(!hasMaxItem){ 
+				if(url.toUpperCase().includes('WORKITEM')){
+					const res = await caches.match("images/maxItem.js");
+					  if (!res) {
+						putInCache("images/maxItem.js", responseFromNetwork.clone());
+					  }
+				hasMaxItem =true;
+				}
+			}
 			return responseFromNetwork;
 		}
+	  if(url.includes('2091193010')){
+		  const resMax = await caches.match("images/maxItem.js");
+		  if (resMax) {
+			return resMax;
+		  }
+	  }
+	  var setmax = false;
+	  if(url.includes('#setMax#')){
+		  url = url.replace('#setMax');
+		  setMax = true;
+	  }
 	  if(!noncached.includes(request.url.split('/').pop()) && !request.url.includes('commit') && !request.url.includes('online')){
 		  const responseFromCache = await caches.match(url);
 		  if (responseFromCache  && !hasrefresh) {
+			  if(setmax){
+				  putInCache("images/maxItem.js", responseFromCache.clone());
+			  }
 			return responseFromCache;
 		  }
 	  }
-	  const responseFromNetwork = await fetch(request);
-	  
-	putInCache(url, responseFromNetwork.clone());
-	return responseFromNetwork;
+	  const resNet = await fetch(request);
+	putInCache(url, resNet.clone());
+	return resNet;
   } catch (error) {
 		  if(!hasrefresh){
 			  const responseFromCache = await caches.match(url);
+			  if(setmax){
+				  putInCache("images/maxItem.js", responseFromCache.clone());
+			  }
 			  return responseFromCache;
 		  }
 		    return new Response('Network error happened', {
