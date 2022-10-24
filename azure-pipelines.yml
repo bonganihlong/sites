@@ -20,7 +20,7 @@ steps:
         +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
   displayName: 'Copy to Github'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
-- task: ArchiveFiles@3
+- task: ArchiveFiles@2
   inputs:
     rootFolderOrFile: '$(build.sourcesDirectory)'
     includeRootFolder: false
