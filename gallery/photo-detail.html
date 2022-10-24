@@ -120,8 +120,8 @@ https://templatemo.com/tm-556-catalog-z
              var query = getQueryParams(document.location.search);
          function setParameters(){
              document.getElementById('title').innerHTML = query.file;
-             document.getElementById('pic').src = "/images/sync/zandilecultural2006/" + query.file;
-             document.getElementById('download').href = "/images/sync/zandilecultural2006/" + query.file;
+             document.getElementById('pic').src = "../images/sync/zandilecultural2006/" + query.file;
+             document.getElementById('download').href = "../images/sync/zandilecultural2006/" + query.file;
              document.getElementById('download').download = query.file;
              //document["pic"].src = "/images/sync/zandilecultural2006/" + query.file;
          }
@@ -137,7 +137,7 @@ https://templatemo.com/tm-556-catalog-z
              };
          }
          function viewfile(){
-             window.open("/images/sync/zandilecultural2006/" + query.file, '_self');
+             window.open("../images/sync/zandilecultural2006/" + query.file, '_self');
          }
          function downloadDialog(url) {
           const a = document.createElement('a')
@@ -148,7 +148,7 @@ https://templatemo.com/tm-556-catalog-z
           document.body.removeChild(a)
         }
          function downloadfile(){
-             downloadDialog("/images/sync/zandilecultural2006/" + query.file);
+             downloadDialog("../images/sync/zandilecultural2006/" + query.file);
          }
          function download(file, text) {
               
