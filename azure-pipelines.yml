@@ -27,6 +27,6 @@ steps:
 - bash: |
     git push --prune  +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/* \
         https://$(Github.PAT)@github.com/bonganihlong/sites
-  displayName: 'Copy to Github'
+  displayName: 'Copy from Github'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/sync')
 - task: PublishBuildArtifacts@1
