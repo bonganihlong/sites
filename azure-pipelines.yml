@@ -25,8 +25,8 @@ steps:
     rootFolderOrFile: '$(build.sourcesDirectory)'
     includeRootFolder: false
 - bash: |
-    git push --prune  +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/* \
-        https://$(Github.PAT)@github.com/bonganihlong/sites
+    git pull --prune  https://$(Github.PAT)@github.com/bonganihlong/sites \
+        +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
   displayName: 'Copy from Github'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/sync')
 - task: PublishBuildArtifacts@1
