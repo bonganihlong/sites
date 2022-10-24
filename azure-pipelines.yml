@@ -20,4 +20,13 @@ steps:
         +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/*
   displayName: 'Copy to Github'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+- task: ArchiveFiles@3
+  inputs:
+    rootFolderOrFile: '$(build.sourcesDirectory)'
+    includeRootFolder: false
+- bash: |
+    git push --prune  +refs/remotes/origin/*:refs/heads/* +refs/tags/*:refs/tags/* \
+        https://$(Github.PAT)@github.com/bonganihlong/sites
+  displayName: 'Copy to Github'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/sync')
 - task: PublishBuildArtifacts@1
