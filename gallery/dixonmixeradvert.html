@@ -119,8 +119,8 @@ https://templatemo.com/tm-556-catalog-z
         </div> <!-- row -->
         <div class="row tm-mb-90">
             <div class="col-12 d-flex justify-content-between align-items-center tm-paging-col">
-                <a href="javascript:void(0);" class="btn btn-primary tm-btn-prev mb-2">Contact</a>
-                <a href="index_2.html" class="btn btn-primary tm-btn-next">Place Ad</a>
+                <a onclick="sendAccessWhatsapp('Dixon Mixer Contact')" class="btn btn-primary tm-btn-prev mb-2">Contact</a>
+                <a onclick="sendAccessWhatsapp('Dixon Mixer Place Ad')"class="btn btn-primary tm-btn-next">Place Ad</a>
             </div>            
         </div>
     </div> <!-- container-fluid, tm-container-content -->
@@ -143,6 +143,13 @@ https://templatemo.com/tm-556-catalog-z
         $(window).on("load", function() {
             $('body').addClass('loaded');
         });
+
+        
+        
+         function sendAccessWhatsapp(message){
+        	window.location.href = "https://api.whatsapp.com/send?phone=27726359342&text=" + "Dixon Mixer" + " " + message;
+        }
+        
         
     </script>
 </body>
